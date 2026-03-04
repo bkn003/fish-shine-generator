@@ -1,4 +1,4 @@
-import React from "react";
+import React, { forwardRef } from "react";
 import { CardTheme, getContrastColor } from "@/lib/themes";
 import { Shop, PriceItem, TextStyleOverrides } from "@/lib/shop";
 
@@ -20,16 +20,15 @@ interface CardCanvasProps {
     dayBanner?: string;
   };
   textStyles: TextStyleOverrides;
-  canvasRef: React.RefObject<HTMLDivElement>;
   pageNumber?: number;
   totalPages?: number;
 }
 
-const CardCanvas: React.FC<CardCanvasProps> = ({
+const CardCanvas = forwardRef<HTMLDivElement, CardCanvasProps>(({
   shop, dayNumber, dayLabel, theme, items, specialNote,
-  showGradient, font, colorOverrides, textStyles, canvasRef,
+  showGradient, font, colorOverrides, textStyles,
   pageNumber = 1, totalPages = 1,
-}) => {
+}, ref) => {
   const accent = colorOverrides.accent || theme.accentColor;
   const shopNameC = textStyles.shopName?.color || colorOverrides.shopName || theme.shopNameColor;
   const itemTextC = textStyles.itemName?.color || colorOverrides.itemText || theme.textColor;
@@ -48,7 +47,7 @@ const CardCanvas: React.FC<CardCanvasProps> = ({
 
   return (
     <div
-      ref={canvasRef}
+      ref={ref}
       style={{
         width: 500,
         height: 720,
@@ -218,6 +217,8 @@ const CardCanvas: React.FC<CardCanvasProps> = ({
       </div>
     </div>
   );
-};
+});
+
+CardCanvas.displayName = "CardCanvas";
 
 export default CardCanvas;
