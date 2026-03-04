@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import ShopSetup from "./pages/ShopSetup";
 import MyCards from "./pages/MyCards";
+import ThemeGallery from "./pages/ThemeGallery";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -20,6 +21,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/shop-setup" element={<ShopSetup />} />
           <Route path="/my-cards" element={<MyCards />} />
+          <Route path="/theme-gallery" element={<ThemeGallery />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

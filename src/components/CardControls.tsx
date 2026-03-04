@@ -1,11 +1,12 @@
-import React from "react";
-import { PriceItem } from "@/lib/shop";
+import React, { useState } from "react";
+import { PriceItem, TextStyleOverrides, TextStyle } from "@/lib/shop";
 import { CardTheme, FONT_OPTIONS } from "@/lib/themes";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, RotateCcw } from "lucide-react";
+import { Plus, Trash2, RotateCcw, Bold, ChevronDown, ChevronUp } from "lucide-react";
 
 interface ColorOverrides {
   accent?: string;
@@ -31,6 +32,8 @@ interface CardControlsProps {
   setFont: (s: string) => void;
   colorOverrides: ColorOverrides;
   setColorOverrides: (o: ColorOverrides) => void;
+  textStyles: TextStyleOverrides;
+  setTextStyles: (s: TextStyleOverrides) => void;
   theme: CardTheme;
 }
 
@@ -43,18 +46,54 @@ const COLOR_FIELDS: { key: keyof ColorOverrides; label: string; themeKey: keyof 
   { key: "dayBanner", label: "Day Banner", themeKey: "bannerColor" },
 ];
 
+interface TextStyleField {
+  key: keyof TextStyleOverrides;
+  label: string;
+  defaultSize: number;
+  defaultBold: boolean;
+  defaultColor: string;
+}
+
+const TEXT_STYLE_FIELDS: TextStyleField[] = [
+  { key: "shopName", label: "Shop Name", defaultSize: 20, defaultBold: true, defaultColor: "" },
+  { key: "shopNameTamil", label: "Shop Tamil", defaultSize: 13, defaultBold: false, defaultColor: "" },
+  { key: "tagline", label: "Tagline", defaultSize: 11, defaultBold: false, defaultColor: "" },
+  { key: "dayBanner", label: "Day Banner", defaultSize: 16, defaultBold: true, defaultColor: "" },
+  { key: "deliveryNote", label: "Delivery Note", defaultSize: 11, defaultBold: false, defaultColor: "" },
+  { key: "itemName", label: "Item Name", defaultSize: 14, defaultBold: true, defaultColor: "" },
+  { key: "itemNameTamil", label: "Item Tamil", defaultSize: 11, defaultBold: false, defaultColor: "" },
+  { key: "priceBadge", label: "Price Badge", defaultSize: 13, defaultBold: true, defaultColor: "" },
+  { key: "specialNote", label: "Special Note", defaultSize: 12, defaultBold: false, defaultColor: "" },
+  { key: "footer", label: "Footer", defaultSize: 10, defaultBold: false, defaultColor: "" },
+];
+
 const CardControls: React.FC<CardControlsProps> = ({
   dayNumber, setDayNumber, dayLabel, setDayLabel,
   items, setItems, specialNote, setSpecialNote,
   showGradient, setShowGradient, font, setFont,
-  colorOverrides, setColorOverrides, theme,
+  colorOverrides, setColorOverrides, textStyles, setTextStyles, theme,
 }) => {
+  const [showTextStyles, setShowTextStyles] = useState(false);
+
   const addItem = () => setItems([...items, { name: "", name_tamil: "", price: "" }]);
   const removeItem = (i: number) => setItems(items.filter((_, idx) => idx !== i));
   const updateItem = (i: number, field: keyof PriceItem, val: string) => {
     const newItems = [...items];
     newItems[i] = { ...newItems[i], [field]: val };
     setItems(newItems);
+  };
+
+  const updateTextStyle = (key: keyof TextStyleOverrides, prop: keyof TextStyle, value: any) => {
+    setTextStyles({
+      ...textStyles,
+      [key]: { ...textStyles[key], [prop]: value },
+    });
+  };
+
+  const resetTextStyle = (key: keyof TextStyleOverrides) => {
+    const newStyles = { ...textStyles };
+    delete newStyles[key];
+    setTextStyles(newStyles);
   };
 
   return (
@@ -131,15 +170,80 @@ const CardControls: React.FC<CardControlsProps> = ({
         </div>
       </div>
 
+      {/* Text Style Controls */}
+      <div className="glass-panel p-4 space-y-3">
+        <button
+          onClick={() => setShowTextStyles(!showTextStyles)}
+          className="flex items-center justify-between w-full"
+        >
+          <h3 className="text-sm font-semibold text-primary">Text Size & Style</h3>
+          {showTextStyles ? <ChevronUp size={16} className="text-primary" /> : <ChevronDown size={16} className="text-primary" />}
+        </button>
+        {showTextStyles && (
+          <div className="space-y-3">
+            {TEXT_STYLE_FIELDS.map(({ key, label, defaultSize, defaultBold }) => {
+              const style = textStyles[key];
+              const currentSize = style?.fontSize || defaultSize;
+              const currentBold = style?.bold !== undefined ? style.bold : defaultBold;
+              const currentColor = style?.color || "";
+
+              return (
+                <div key={key} className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground flex-1">{label}</span>
+                    {currentColor && (
+                      <input
+                        type="color"
+                        value={currentColor}
+                        onChange={e => updateTextStyle(key, "color", e.target.value)}
+                        className="w-5 h-5 rounded cursor-pointer border-0 bg-transparent"
+                      />
+                    )}
+                    {!currentColor && (
+                      <button
+                        onClick={() => updateTextStyle(key, "color", "#ffffff")}
+                        className="text-[10px] text-muted-foreground hover:text-foreground border border-border rounded px-1"
+                      >
+                        Color
+                      </button>
+                    )}
+                    <button
+                      onClick={() => updateTextStyle(key, "bold", !currentBold)}
+                      className={`p-0.5 rounded ${currentBold ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                    >
+                      <Bold size={12} />
+                    </button>
+                    <span className="text-[10px] text-muted-foreground w-6 text-right">{currentSize}</span>
+                    {style && (
+                      <button onClick={() => resetTextStyle(key)} className="text-muted-foreground hover:text-foreground">
+                        <RotateCcw size={10} />
+                      </button>
+                    )}
+                  </div>
+                  <Slider
+                    value={[currentSize]}
+                    onValueChange={([v]) => updateTextStyle(key, "fontSize", v)}
+                    min={8}
+                    max={32}
+                    step={1}
+                    className="w-full"
+                  />
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
       {/* Items */}
       <div className="glass-panel p-4 space-y-3">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-primary">Price Items</h3>
+          <h3 className="text-sm font-semibold text-primary">Price Items ({items.length})</h3>
           <button onClick={addItem} className="flex items-center gap-1 text-xs text-primary hover:text-primary/80">
             <Plus size={14} /> Add
           </button>
         </div>
-        <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+        <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
           {items.map((item, i) => (
             <div key={i} className="flex gap-2 items-start bg-secondary/50 rounded-lg p-2">
               <div className="flex-1 space-y-1">
