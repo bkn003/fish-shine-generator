@@ -48,8 +48,36 @@ const Index: React.FC = () => {
   }>({});
   const [textStyles, setTextStyles] = useState<TextStyleOverrides>({});
   const [activePage, setActivePage] = useState(0);
+  const [shop, setShop] = useState<Shop>({
+    shop_name: "Fresh Fish Market",
+    shop_name_tamil: "புதிய மீன் சந்தை",
+    tagline: "Daily Fresh Catch",
+    logo_url: "",
+    phone: "",
+    address: "",
+    delivery_note: "Free delivery above ₹500",
+    owner_email: "",
+  });
+  const { user } = useAuth();
 
-  const shop = getShop();
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("shops").select("*").eq("user_id", user.id).maybeSingle().then(({ data }) => {
+      if (data) {
+        setShop({
+          shop_name: data.shop_name,
+          shop_name_tamil: data.shop_name_tamil || "",
+          tagline: data.tagline || "",
+          logo_url: data.logo_url || "",
+          phone: data.phone || "",
+          address: data.address || "",
+          delivery_note: data.delivery_note || "",
+          owner_email: user.email || "",
+        });
+      }
+    });
+  }, [user]);
+
   const theme = getThemeForDay(dayNumber);
 
   // Split items into pages
