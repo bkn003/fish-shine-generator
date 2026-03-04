@@ -2,7 +2,9 @@ import React, { useState, useMemo } from "react";
 import AppNav from "@/components/AppNav";
 import { getThemeForDay } from "@/lib/themes";
 import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { Search, Check } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 const TOTAL = 365;
 const PER_PAGE = 60;
@@ -10,6 +12,7 @@ const PER_PAGE = 60;
 const ThemeGallery: React.FC = () => {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
+  const navigate = useNavigate();
 
   const allThemes = useMemo(() => {
     return Array.from({ length: TOTAL }, (_, i) => ({
@@ -29,13 +32,21 @@ const ThemeGallery: React.FC = () => {
   const totalPages = Math.ceil(filtered.length / PER_PAGE);
   const pageItems = filtered.slice(page * PER_PAGE, (page + 1) * PER_PAGE);
 
+  const handleThemeClick = (day: number, themeName: string) => {
+    toast.success(`Theme "${themeName}" (Day ${day}) applied!`);
+    navigate(`/?day=${day}`);
+  };
+
   return (
     <div className="min-h-screen p-4 md:p-6 max-w-7xl mx-auto">
       <AppNav />
 
       <div className="glass-panel p-4 mb-4">
         <div className="flex items-center justify-between gap-4 flex-wrap">
-          <h2 className="text-lg font-bold text-primary glow-text">365 Theme Gallery</h2>
+          <div>
+            <h2 className="text-lg font-bold text-primary glow-text">365 Theme Gallery</h2>
+            <p className="text-xs text-muted-foreground mt-1">Click any theme to apply it to the card generator</p>
+          </div>
           <div className="relative w-64">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -52,7 +63,9 @@ const ThemeGallery: React.FC = () => {
         {pageItems.map(({ day, theme }) => (
           <div
             key={day}
-            className="glass-panel overflow-hidden cursor-pointer hover:scale-105 transition-transform group"
+            onClick={() => handleThemeClick(day, theme.name)}
+            className="glass-panel overflow-hidden cursor-pointer hover:scale-105 transition-transform group relative"
+            title={`Click to apply "${theme.name}" theme`}
           >
             <div
               style={{ background: theme.gradient, height: 80 }}
@@ -65,6 +78,10 @@ const ThemeGallery: React.FC = () => {
                   background: `radial-gradient(circle, ${theme.glowColor}44, transparent)`,
                 }}
               />
+              {/* Hover overlay */}
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                <Check size={20} className="text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg" />
+              </div>
               <span style={{ color: theme.shopNameColor, fontSize: 10, fontWeight: 700 }}>
                 Day {day}
               </span>
@@ -83,7 +100,7 @@ const ThemeGallery: React.FC = () => {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2 mt-6">
+        <div className="flex items-center justify-center gap-2 mt-6 flex-wrap">
           {Array.from({ length: totalPages }, (_, i) => (
             <button
               key={i}

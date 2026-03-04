@@ -1,4 +1,33 @@
+// Temporarily make an element visible for capture (handles hidden/display:none)
+function prepareForCapture(el: HTMLElement): (() => void) {
+  const parent = el.closest('.hidden') as HTMLElement | null;
+  if (parent && parent !== el) {
+    const prev = parent.style.cssText;
+    parent.style.display = 'block';
+    parent.style.position = 'absolute';
+    parent.style.left = '-9999px';
+    parent.style.top = '0';
+    return () => { parent.style.cssText = prev; };
+  }
+  // Check if the element's wrapper has hidden class
+  const wrapper = el.parentElement;
+  if (wrapper && wrapper.classList.contains('hidden')) {
+    wrapper.classList.remove('hidden');
+    wrapper.style.position = 'absolute';
+    wrapper.style.left = '-9999px';
+    wrapper.style.top = '0';
+    return () => {
+      wrapper.classList.add('hidden');
+      wrapper.style.position = '';
+      wrapper.style.left = '';
+      wrapper.style.top = '';
+    };
+  }
+  return () => {};
+}
+
 export async function downloadCard(canvas: HTMLElement, fileName: string) {
+  const restore = prepareForCapture(canvas);
   const html2canvas = (await import("html2canvas")).default;
   const c = await html2canvas(canvas, {
     scale: 4,
@@ -7,6 +36,7 @@ export async function downloadCard(canvas: HTMLElement, fileName: string) {
     width: 500,
     height: 720,
   });
+  restore();
   const link = document.createElement("a");
   link.download = fileName;
   link.href = c.toDataURL("image/png");
@@ -15,6 +45,7 @@ export async function downloadCard(canvas: HTMLElement, fileName: string) {
 }
 
 export async function getCardBlob(canvas: HTMLElement): Promise<Blob> {
+  const restore = prepareForCapture(canvas);
   const html2canvas = (await import("html2canvas")).default;
   const c = await html2canvas(canvas, {
     scale: 4,
@@ -23,6 +54,7 @@ export async function getCardBlob(canvas: HTMLElement): Promise<Blob> {
     width: 500,
     height: 720,
   });
+  restore();
   return new Promise((resolve) => {
     c.toBlob((blob) => resolve(blob!), "image/png");
   });
@@ -32,6 +64,10 @@ export async function downloadMultipleCards(canvases: HTMLElement[], baseFileNam
   for (let i = 0; i < canvases.length; i++) {
     const suffix = canvases.length > 1 ? `-page${i + 1}` : "";
     await downloadCard(canvases[i], `${baseFileName}${suffix}.png`);
+    // Small delay between downloads so browser doesn't block them
+    if (i < canvases.length - 1) {
+      await new Promise(r => setTimeout(r, 500));
+    }
   }
 }
 
