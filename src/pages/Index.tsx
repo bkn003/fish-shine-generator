@@ -107,18 +107,19 @@ const Index: React.FC = () => {
     if (elements.length === 0) return;
     await downloadMultipleCards(elements, `fish-prices-day${dayNumber}`);
     toast.success(`${elements.length} card${elements.length > 1 ? "s" : ""} downloaded!`);
-    saveCard({
-      id: `card-${dayNumber}-${Date.now()}`,
-      shop_id: "local",
-      day_number: dayNumber,
-      card_date: new Date().toISOString(),
-      day_label: dayLabel,
-      background_color: theme.gradient,
-      accent_color: theme.accentColor,
-      items,
-      special_note: specialNote,
-      is_published: true,
-    });
+    // Save to Supabase
+    if (user) {
+      await supabase.from("price_cards").insert({
+        user_id: user.id,
+        day_number: dayNumber,
+        day_label: dayLabel,
+        background_color: theme.gradient,
+        accent_color: theme.accentColor,
+        items: items as any,
+        special_note: specialNote,
+        is_published: true,
+      });
+    }
   };
 
   const shareText = `🐟 Today's Fish Prices from ${shop.shop_name}! Day ${dayNumber}`;
