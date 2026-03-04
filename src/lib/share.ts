@@ -28,33 +28,76 @@ export async function getCardBlob(canvas: HTMLElement): Promise<Blob> {
   });
 }
 
-export async function shareToWhatsApp(canvas: HTMLElement, text: string) {
+export async function downloadMultipleCards(canvases: HTMLElement[], baseFileName: string) {
+  for (let i = 0; i < canvases.length; i++) {
+    const suffix = canvases.length > 1 ? `-page${i + 1}` : "";
+    await downloadCard(canvases[i], `${baseFileName}${suffix}.png`);
+  }
+}
+
+export async function getMultipleCardBlobs(canvases: HTMLElement[]): Promise<File[]> {
+  const files: File[] = [];
+  for (let i = 0; i < canvases.length; i++) {
+    const blob = await getCardBlob(canvases[i]);
+    const suffix = canvases.length > 1 ? `-page${i + 1}` : "";
+    files.push(new File([blob], `fish-prices${suffix}.png`, { type: "image/png" }));
+  }
+  return files;
+}
+
+export async function shareToWhatsApp(canvases: HTMLElement[], text: string) {
   if (navigator.share) {
     try {
-      const blob = await getCardBlob(canvas);
-      const file = new File([blob], "fish-prices.png", { type: "image/png" });
-      await navigator.share({ text, files: [file] });
+      const files = await getMultipleCardBlobs(canvases);
+      await navigator.share({ text, files });
       return;
     } catch {}
   }
-  await downloadCard(canvas, "fish-prices.png");
+  await downloadMultipleCards(canvases, "fish-prices");
   window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
 }
 
-export async function shareToFacebook(canvas: HTMLElement) {
-  await downloadCard(canvas, "fish-prices.png");
+export async function shareToFacebook(canvases: HTMLElement[]) {
+  await downloadMultipleCards(canvases, "fish-prices");
   window.open("https://www.facebook.com/", "_blank");
 }
 
-export async function shareToInstagram(canvas: HTMLElement) {
+export async function shareToInstagram(canvases: HTMLElement[]) {
   if (navigator.share) {
     try {
-      const blob = await getCardBlob(canvas);
-      const file = new File([blob], "fish-prices.png", { type: "image/png" });
-      await navigator.share({ files: [file] });
+      const files = await getMultipleCardBlobs(canvases);
+      await navigator.share({ files });
       return;
     } catch {}
   }
-  await downloadCard(canvas, "fish-prices.png");
+  await downloadMultipleCards(canvases, "fish-prices");
   window.open("https://www.instagram.com/", "_blank");
+}
+
+export async function shareToTwitter(canvases: HTMLElement[], text: string) {
+  await downloadMultipleCards(canvases, "fish-prices");
+  window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, "_blank");
+}
+
+export async function shareToTelegram(canvases: HTMLElement[], text: string) {
+  if (navigator.share) {
+    try {
+      const files = await getMultipleCardBlobs(canvases);
+      await navigator.share({ text, files });
+      return;
+    } catch {}
+  }
+  await downloadMultipleCards(canvases, "fish-prices");
+  window.open(`https://t.me/share/url?text=${encodeURIComponent(text)}`, "_blank");
+}
+
+export async function shareGeneric(canvases: HTMLElement[], text: string) {
+  if (navigator.share) {
+    try {
+      const files = await getMultipleCardBlobs(canvases);
+      await navigator.share({ text, files });
+      return;
+    } catch {}
+  }
+  await downloadMultipleCards(canvases, "fish-prices");
 }

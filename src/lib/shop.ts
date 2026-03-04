@@ -15,6 +15,25 @@ export interface PriceItem {
   price: string;
 }
 
+export interface TextStyle {
+  fontSize?: number;
+  bold?: boolean;
+  color?: string;
+}
+
+export interface TextStyleOverrides {
+  shopName?: TextStyle;
+  shopNameTamil?: TextStyle;
+  tagline?: TextStyle;
+  dayBanner?: TextStyle;
+  deliveryNote?: TextStyle;
+  itemName?: TextStyle;
+  itemNameTamil?: TextStyle;
+  priceBadge?: TextStyle;
+  specialNote?: TextStyle;
+  footer?: TextStyle;
+}
+
 export interface PriceCard {
   id: string;
   shop_id: string;
