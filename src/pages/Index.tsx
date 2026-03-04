@@ -31,7 +31,10 @@ const Index: React.FC = () => {
   const [specialNote, setSpecialNote] = useState("Order before 8 AM for same-day delivery!");
   const [showGradient, setShowGradient] = useState(true);
   const [font, setFont] = useState(FONT_OPTIONS[0].value);
-  const [colorOverrides, setColorOverrides] = useState<Record<string, string | undefined>>({});
+  const [colorOverrides, setColorOverrides] = useState<{
+    accent?: string; shopName?: string; itemText?: string;
+    tamilText?: string; priceBadge?: string; dayBanner?: string;
+  }>({});
   const canvasRef = useRef<HTMLDivElement>(null);
 
   const shop = getShop();
