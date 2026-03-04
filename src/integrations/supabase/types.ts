@@ -14,7 +14,128 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      price_cards: {
+        Row: {
+          accent_color: string | null
+          background_color: string | null
+          card_date: string
+          created_at: string
+          day_label: string
+          day_number: number
+          id: string
+          is_published: boolean | null
+          items: Json
+          shop_id: string | null
+          special_note: string | null
+          user_id: string
+        }
+        Insert: {
+          accent_color?: string | null
+          background_color?: string | null
+          card_date?: string
+          created_at?: string
+          day_label: string
+          day_number: number
+          id?: string
+          is_published?: boolean | null
+          items?: Json
+          shop_id?: string | null
+          special_note?: string | null
+          user_id: string
+        }
+        Update: {
+          accent_color?: string | null
+          background_color?: string | null
+          card_date?: string
+          created_at?: string
+          day_label?: string
+          day_number?: number
+          id?: string
+          is_published?: boolean | null
+          items?: Json
+          shop_id?: string | null
+          special_note?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "price_cards_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          display_name: string | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      shops: {
+        Row: {
+          address: string | null
+          created_at: string
+          delivery_note: string | null
+          id: string
+          logo_url: string | null
+          phone: string | null
+          shop_name: string
+          shop_name_tamil: string | null
+          tagline: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          delivery_note?: string | null
+          id?: string
+          logo_url?: string | null
+          phone?: string | null
+          shop_name?: string
+          shop_name_tamil?: string | null
+          tagline?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          delivery_note?: string | null
+          id?: string
+          logo_url?: string | null
+          phone?: string | null
+          shop_name?: string
+          shop_name_tamil?: string | null
+          tagline?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
