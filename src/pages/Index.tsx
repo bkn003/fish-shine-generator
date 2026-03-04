@@ -249,9 +249,10 @@ const Index: React.FC = () => {
 
           {/* Action buttons */}
           <div className="flex flex-wrap gap-2 justify-center">
-            <button onClick={handleDownload}
-              className="glass-panel px-4 py-2.5 flex items-center gap-2 text-sm font-medium text-primary hover:bg-primary/10 transition-colors">
-              <Download size={16} /> Download {totalPages > 1 ? `All (${totalPages})` : "HD"}
+            <button onClick={handleDownload} disabled={isProcessing}
+              className="glass-panel px-4 py-2.5 flex items-center gap-2 text-sm font-medium text-primary hover:bg-primary/10 transition-colors disabled:opacity-50">
+              {isProcessing ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+              {isProcessing ? "Processing..." : totalPages > 1 ? `Download All (${totalPages})` : "Download HD"}
             </button>
             <button onClick={handleWhatsApp}
               className="glass-panel px-3 py-2.5 flex items-center gap-2 text-sm font-medium hover:bg-secondary/80 transition-colors"
