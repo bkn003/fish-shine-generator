@@ -36,8 +36,10 @@ const DEFAULT_ITEMS: PriceItem[] = [
 const Index: React.FC = () => {
   const now = new Date();
   const dayOfYear = Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 86400000);
+  const [searchParams] = useSearchParams();
+  const dayFromGallery = searchParams.get("day");
 
-  const [dayNumber, setDayNumber] = useState(dayOfYear);
+  const [dayNumber, setDayNumber] = useState(dayFromGallery ? parseInt(dayFromGallery) : dayOfYear);
   const [dayLabel, setDayLabel] = useState(DAYS[now.getDay()]);
   const [items, setItems] = useState<PriceItem[]>(DEFAULT_ITEMS);
   const [specialNote, setSpecialNote] = useState("Order before 8 AM for same-day delivery!");
