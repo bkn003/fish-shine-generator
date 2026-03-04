@@ -1,9 +1,11 @@
-import React, { useRef, useState, useMemo, createRef } from "react";
+import React, { useRef, useState, useMemo, createRef, useEffect } from "react";
 import AppNav from "@/components/AppNav";
 import CardCanvas from "@/components/CardCanvas";
 import CardControls from "@/components/CardControls";
 import { getThemeForDay, FONT_OPTIONS } from "@/lib/themes";
-import { getShop, saveCard, PriceItem, TextStyleOverrides } from "@/lib/shop";
+import { PriceItem, TextStyleOverrides, Shop } from "@/lib/shop";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { downloadMultipleCards, shareToWhatsApp, shareToInstagram, shareToFacebook, shareToTwitter, shareToTelegram, shareGeneric } from "@/lib/share";
 import { Download, Share2, MessageCircle, Send, Twitter } from "lucide-react";
 import { toast } from "sonner";
@@ -46,8 +48,36 @@ const Index: React.FC = () => {
   }>({});
   const [textStyles, setTextStyles] = useState<TextStyleOverrides>({});
   const [activePage, setActivePage] = useState(0);
+  const [shop, setShop] = useState<Shop>({
+    shop_name: "Fresh Fish Market",
+    shop_name_tamil: "புதிய மீன் சந்தை",
+    tagline: "Daily Fresh Catch",
+    logo_url: "",
+    phone: "",
+    address: "",
+    delivery_note: "Free delivery above ₹500",
+    owner_email: "",
+  });
+  const { user } = useAuth();
 
-  const shop = getShop();
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("shops").select("*").eq("user_id", user.id).maybeSingle().then(({ data }) => {
+      if (data) {
+        setShop({
+          shop_name: data.shop_name,
+          shop_name_tamil: data.shop_name_tamil || "",
+          tagline: data.tagline || "",
+          logo_url: data.logo_url || "",
+          phone: data.phone || "",
+          address: data.address || "",
+          delivery_note: data.delivery_note || "",
+          owner_email: user.email || "",
+        });
+      }
+    });
+  }, [user]);
+
   const theme = getThemeForDay(dayNumber);
 
   // Split items into pages
@@ -77,18 +107,19 @@ const Index: React.FC = () => {
     if (elements.length === 0) return;
     await downloadMultipleCards(elements, `fish-prices-day${dayNumber}`);
     toast.success(`${elements.length} card${elements.length > 1 ? "s" : ""} downloaded!`);
-    saveCard({
-      id: `card-${dayNumber}-${Date.now()}`,
-      shop_id: "local",
-      day_number: dayNumber,
-      card_date: new Date().toISOString(),
-      day_label: dayLabel,
-      background_color: theme.gradient,
-      accent_color: theme.accentColor,
-      items,
-      special_note: specialNote,
-      is_published: true,
-    });
+    // Save to Supabase
+    if (user) {
+      await supabase.from("price_cards").insert({
+        user_id: user.id,
+        day_number: dayNumber,
+        day_label: dayLabel,
+        background_color: theme.gradient,
+        accent_color: theme.accentColor,
+        items: items as any,
+        special_note: specialNote,
+        is_published: true,
+      });
+    }
   };
 
   const shareText = `🐟 Today's Fish Prices from ${shop.shop_name}! Day ${dayNumber}`;

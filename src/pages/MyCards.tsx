@@ -1,18 +1,50 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import AppNav from "@/components/AppNav";
-import { getSavedCards, deleteCard, PriceCard } from "@/lib/shop";
 import { getThemeForDay } from "@/lib/themes";
-import { Trash2, Calendar, Fish } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { Trash2, Calendar, Fish, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
-const MyCards: React.FC = () => {
-  const [cards, setCards] = useState<PriceCard[]>(getSavedCards());
+interface CardRow {
+  id: string;
+  day_number: number;
+  day_label: string;
+  card_date: string;
+  items: any[];
+  special_note: string | null;
+}
 
-  const handleDelete = (id: string) => {
-    deleteCard(id);
-    setCards(getSavedCards());
+const MyCards: React.FC = () => {
+  const { user } = useAuth();
+  const [cards, setCards] = useState<CardRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchCards = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("price_cards")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+    setCards((data as any[]) || []);
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchCards(); }, [user]);
+
+  const handleDelete = async (id: string) => {
+    await supabase.from("price_cards").delete().eq("id", id);
+    setCards(cards.filter(c => c.id !== id));
     toast.success("Card deleted");
   };
+
+  if (loading) return (
+    <div className="min-h-screen p-4 md:p-6 max-w-5xl mx-auto">
+      <AppNav />
+      <div className="flex items-center justify-center py-20"><Loader2 className="animate-spin text-primary" size={32} /></div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen p-4 md:p-6 max-w-5xl mx-auto">
@@ -32,6 +64,7 @@ const MyCards: React.FC = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {cards.map(card => {
             const theme = getThemeForDay(card.day_number);
+            const items = Array.isArray(card.items) ? card.items : [];
             return (
               <div key={card.id} className="glass-panel overflow-hidden group">
                 <div className="h-32 flex items-center justify-center text-2xl font-bold"
@@ -46,16 +79,16 @@ const MyCards: React.FC = () => {
                     </span>
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {card.items.length} items • Theme: {theme.name}
+                    {items.length} items • Theme: {theme.name}
                   </div>
                   <div className="flex flex-wrap gap-1">
-                    {card.items.slice(0, 3).map((item, i) => (
+                    {items.slice(0, 3).map((item: any, i: number) => (
                       <span key={i} className="text-xs px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground">
                         {item.name} ₹{item.price}
                       </span>
                     ))}
-                    {card.items.length > 3 && (
-                      <span className="text-xs text-muted-foreground">+{card.items.length - 3} more</span>
+                    {items.length > 3 && (
+                      <span className="text-xs text-muted-foreground">+{items.length - 3} more</span>
                     )}
                   </div>
                   <button onClick={() => handleDelete(card.id)}
