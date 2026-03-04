@@ -7,8 +7,9 @@ import { PriceItem, TextStyleOverrides, Shop } from "@/lib/shop";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { downloadMultipleCards, shareToWhatsApp, shareToInstagram, shareToFacebook, shareToTwitter, shareToTelegram, shareGeneric } from "@/lib/share";
-import { Download, Share2, MessageCircle, Send, Twitter } from "lucide-react";
+import { Download, Share2, MessageCircle, Send, Twitter, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useSearchParams } from "react-router-dom";
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const MAX_ITEMS_PER_PAGE = 10;
