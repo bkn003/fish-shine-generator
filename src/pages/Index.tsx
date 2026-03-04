@@ -218,22 +218,34 @@ const Index: React.FC = () => {
             </div>
           )}
 
-          {/* Render all pages but only show active */}
-          {pages.map((pageItems, pageIdx) => (
-            <div
-              key={pageIdx}
-              className={`glass-panel p-3 glow-border ${pageIdx !== activePage ? "hidden" : ""}`}
-            >
-              <CardCanvas
-                shop={shop} dayNumber={dayNumber} dayLabel={dayLabel}
-                theme={theme} items={pageItems} specialNote={pageIdx === pages.length - 1 ? specialNote : ""}
-                showGradient={showGradient} font={font}
-                colorOverrides={colorOverrides} textStyles={textStyles}
-                ref={canvasRefs[pageIdx]}
-                pageNumber={pageIdx + 1} totalPages={totalPages}
-              />
-            </div>
-          ))}
+          {/* Active page preview */}
+          <div className="glass-panel p-3 glow-border">
+            <CardCanvas
+              shop={shop} dayNumber={dayNumber} dayLabel={dayLabel}
+              theme={theme} items={pages[activePage] || []} specialNote={activePage === pages.length - 1 ? specialNote : ""}
+              showGradient={showGradient} font={font}
+              colorOverrides={colorOverrides} textStyles={textStyles}
+              ref={canvasRefs[activePage]}
+              pageNumber={activePage + 1} totalPages={totalPages}
+            />
+          </div>
+
+          {/* Off-screen render of non-active pages for download/share */}
+          <div style={{ position: "absolute", left: "-9999px", top: 0 }} aria-hidden>
+            {pages.map((pageItems, pageIdx) =>
+              pageIdx !== activePage ? (
+                <CardCanvas
+                  key={pageIdx}
+                  shop={shop} dayNumber={dayNumber} dayLabel={dayLabel}
+                  theme={theme} items={pageItems} specialNote={pageIdx === pages.length - 1 ? specialNote : ""}
+                  showGradient={showGradient} font={font}
+                  colorOverrides={colorOverrides} textStyles={textStyles}
+                  ref={canvasRefs[pageIdx]}
+                  pageNumber={pageIdx + 1} totalPages={totalPages}
+                />
+              ) : null
+            )}
+          </div>
 
           {/* Action buttons */}
           <div className="flex flex-wrap gap-2 justify-center">
