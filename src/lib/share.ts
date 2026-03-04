@@ -1,33 +1,31 @@
 // Temporarily make an element visible for capture (handles hidden/display:none)
 function prepareForCapture(el: HTMLElement): (() => void) {
-  const parent = el.closest('.hidden') as HTMLElement | null;
-  if (parent && parent !== el) {
-    const prev = parent.style.cssText;
-    parent.style.display = 'block';
-    parent.style.position = 'absolute';
-    parent.style.left = '-9999px';
-    parent.style.top = '0';
-    return () => { parent.style.cssText = prev; };
-  }
-  // Check if the element's wrapper has hidden class
-  const wrapper = el.parentElement;
-  if (wrapper && wrapper.classList.contains('hidden')) {
-    wrapper.classList.remove('hidden');
-    wrapper.style.position = 'absolute';
-    wrapper.style.left = '-9999px';
-    wrapper.style.top = '0';
-    return () => {
-      wrapper.classList.add('hidden');
-      wrapper.style.position = '';
-      wrapper.style.left = '';
-      wrapper.style.top = '';
-    };
+  const hiddenParent = el.closest('.hidden') as HTMLElement | null;
+  if (hiddenParent && hiddenParent !== el) {
+    const prev = hiddenParent.style.cssText;
+    hiddenParent.style.display = 'block';
+    hiddenParent.style.position = 'absolute';
+    hiddenParent.style.left = '-9999px';
+    hiddenParent.style.top = '0';
+    return () => { hiddenParent.style.cssText = prev; };
   }
   return () => {};
 }
 
+async function ensureFontsReady() {
+  if ('fonts' in document) {
+    try {
+      await (document as Document & { fonts: FontFaceSet }).fonts.ready;
+    } catch {
+      // ignore
+    }
+  }
+  await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+}
+
 export async function downloadCard(canvas: HTMLElement, fileName: string) {
   const restore = prepareForCapture(canvas);
+  await ensureFontsReady();
   const html2canvas = (await import("html2canvas")).default;
   const c = await html2canvas(canvas, {
     scale: 4,
@@ -35,8 +33,11 @@ export async function downloadCard(canvas: HTMLElement, fileName: string) {
     backgroundColor: null,
     width: 500,
     height: 720,
+    foreignObjectRendering: true,
+    logging: false,
   });
   restore();
+
   const link = document.createElement("a");
   link.download = fileName;
   link.href = c.toDataURL("image/png");
@@ -46,6 +47,7 @@ export async function downloadCard(canvas: HTMLElement, fileName: string) {
 
 export async function getCardBlob(canvas: HTMLElement): Promise<Blob> {
   const restore = prepareForCapture(canvas);
+  await ensureFontsReady();
   const html2canvas = (await import("html2canvas")).default;
   const c = await html2canvas(canvas, {
     scale: 4,
@@ -53,8 +55,11 @@ export async function getCardBlob(canvas: HTMLElement): Promise<Blob> {
     backgroundColor: null,
     width: 500,
     height: 720,
+    foreignObjectRendering: true,
+    logging: false,
   });
   restore();
+
   return new Promise((resolve) => {
     c.toBlob((blob) => resolve(blob!), "image/png");
   });
@@ -64,9 +69,8 @@ export async function downloadMultipleCards(canvases: HTMLElement[], baseFileNam
   for (let i = 0; i < canvases.length; i++) {
     const suffix = canvases.length > 1 ? `-page${i + 1}` : "";
     await downloadCard(canvases[i], `${baseFileName}${suffix}.png`);
-    // Small delay between downloads so browser doesn't block them
     if (i < canvases.length - 1) {
-      await new Promise(r => setTimeout(r, 500));
+      await new Promise((r) => setTimeout(r, 450));
     }
   }
 }
@@ -87,7 +91,9 @@ export async function shareToWhatsApp(canvases: HTMLElement[], text: string) {
       const files = await getMultipleCardBlobs(canvases);
       await navigator.share({ text, files });
       return;
-    } catch {}
+    } catch {
+      // continue fallback
+    }
   }
   await downloadMultipleCards(canvases, "fish-prices");
   window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
@@ -104,7 +110,9 @@ export async function shareToInstagram(canvases: HTMLElement[]) {
       const files = await getMultipleCardBlobs(canvases);
       await navigator.share({ files });
       return;
-    } catch {}
+    } catch {
+      // continue fallback
+    }
   }
   await downloadMultipleCards(canvases, "fish-prices");
   window.open("https://www.instagram.com/", "_blank");
@@ -121,7 +129,9 @@ export async function shareToTelegram(canvases: HTMLElement[], text: string) {
       const files = await getMultipleCardBlobs(canvases);
       await navigator.share({ text, files });
       return;
-    } catch {}
+    } catch {
+      // continue fallback
+    }
   }
   await downloadMultipleCards(canvases, "fish-prices");
   window.open(`https://t.me/share/url?text=${encodeURIComponent(text)}`, "_blank");
@@ -133,7 +143,9 @@ export async function shareGeneric(canvases: HTMLElement[], text: string) {
       const files = await getMultipleCardBlobs(canvases);
       await navigator.share({ text, files });
       return;
-    } catch {}
+    } catch {
+      // continue fallback
+    }
   }
   await downloadMultipleCards(canvases, "fish-prices");
 }

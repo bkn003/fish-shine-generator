@@ -1,4 +1,4 @@
-import React, { useRef, useState, useMemo, createRef, useEffect } from "react";
+import React, { useState, useMemo, createRef, useEffect } from "react";
 import AppNav from "@/components/AppNav";
 import CardCanvas from "@/components/CardCanvas";
 import CardControls from "@/components/CardControls";
@@ -38,13 +38,17 @@ const Index: React.FC = () => {
   const dayOfYear = Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 86400000);
   const [searchParams] = useSearchParams();
   const dayFromGallery = searchParams.get("day");
+  const selectedDay = Number(dayFromGallery);
+  const initialDay = Number.isFinite(selectedDay) && selectedDay >= 1 && selectedDay <= 365 ? selectedDay : dayOfYear;
 
-  const [dayNumber, setDayNumber] = useState(dayFromGallery ? parseInt(dayFromGallery) : dayOfYear);
+  const [dayNumber, setDayNumber] = useState(initialDay);
   const [dayLabel, setDayLabel] = useState(DAYS[now.getDay()]);
   const [items, setItems] = useState<PriceItem[]>(DEFAULT_ITEMS);
   const [specialNote, setSpecialNote] = useState("Order before 8 AM for same-day delivery!");
   const [showGradient, setShowGradient] = useState(true);
   const [font, setFont] = useState(FONT_OPTIONS[0].value);
+  const [itemsHeaderLabel, setItemsHeaderLabel] = useState("Fish / மீன்");
+  const [priceHeaderLabel, setPriceHeaderLabel] = useState("Price");
   const [colorOverrides, setColorOverrides] = useState<{
     accent?: string; shopName?: string; itemText?: string;
     tamilText?: string; priceBadge?: string; dayBanner?: string;
@@ -61,6 +65,7 @@ const Index: React.FC = () => {
     delivery_note: "Free delivery above ₹500",
     owner_email: "",
   });
+  const [isProcessing, setIsProcessing] = useState(false);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -81,9 +86,15 @@ const Index: React.FC = () => {
     });
   }, [user]);
 
+  useEffect(() => {
+    const n = Number(dayFromGallery);
+    if (Number.isFinite(n) && n >= 1 && n <= 365) {
+      setDayNumber(n);
+    }
+  }, [dayFromGallery]);
+
   const theme = getThemeForDay(dayNumber);
 
-  // Split items into pages
   const pages = useMemo(() => {
     const result: PriceItem[][] = [];
     for (let i = 0; i < items.length; i += MAX_ITEMS_PER_PAGE) {
@@ -94,18 +105,13 @@ const Index: React.FC = () => {
 
   const totalPages = pages.length;
 
-  // Create refs for each page canvas
   const canvasRefs = useMemo(() => {
     return pages.map(() => createRef<HTMLDivElement>());
   }, [pages.length]);
 
   const getCanvasElements = (): HTMLElement[] => {
-    return canvasRefs
-      .map(r => r.current)
-      .filter((el): el is HTMLDivElement => el !== null);
+    return canvasRefs.map((r) => r.current).filter((el): el is HTMLDivElement => el !== null);
   };
-
-  const [isProcessing, setIsProcessing] = useState(false);
 
   const handleDownload = async () => {
     const elements = getCanvasElements();
@@ -114,7 +120,6 @@ const Index: React.FC = () => {
     try {
       await downloadMultipleCards(elements, `fish-prices-day${dayNumber}`);
       toast.success(`${elements.length} card${elements.length > 1 ? "s" : ""} downloaded!`);
-      // Save to Supabase
       if (user) {
         await supabase.from("price_cards").insert({
           user_id: user.id,
@@ -134,46 +139,16 @@ const Index: React.FC = () => {
 
   const shareText = `🐟 Today's Fish Prices from ${shop.shop_name}! Day ${dayNumber}`;
 
-  const handleWhatsApp = async () => {
+  const runShare = async (fn: () => Promise<void>, msg: string) => {
     const el = getCanvasElements();
     if (!el.length) return;
-    await shareToWhatsApp(el, shareText);
-    toast.success("Shared to WhatsApp!");
-  };
-
-  const handleInstagram = async () => {
-    const el = getCanvasElements();
-    if (!el.length) return;
-    await shareToInstagram(el);
-    toast.success("Image ready for Instagram!");
-  };
-
-  const handleFacebook = async () => {
-    const el = getCanvasElements();
-    if (!el.length) return;
-    await shareToFacebook(el);
-    toast.success("Image ready for Facebook!");
-  };
-
-  const handleTwitter = async () => {
-    const el = getCanvasElements();
-    if (!el.length) return;
-    await shareToTwitter(el, shareText);
-    toast.success("Image ready for Twitter/X!");
-  };
-
-  const handleTelegram = async () => {
-    const el = getCanvasElements();
-    if (!el.length) return;
-    await shareToTelegram(el, shareText);
-    toast.success("Shared to Telegram!");
-  };
-
-  const handleGenericShare = async () => {
-    const el = getCanvasElements();
-    if (!el.length) return;
-    await shareGeneric(el, shareText);
-    toast.success("Shared!");
+    setIsProcessing(true);
+    try {
+      await fn();
+      toast.success(msg);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -181,7 +156,6 @@ const Index: React.FC = () => {
       <AppNav />
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_520px] gap-6">
-        {/* Controls */}
         <div className="order-2 lg:order-1">
           <CardControls
             dayNumber={dayNumber} setDayNumber={setDayNumber}
@@ -190,15 +164,16 @@ const Index: React.FC = () => {
             specialNote={specialNote} setSpecialNote={setSpecialNote}
             showGradient={showGradient} setShowGradient={setShowGradient}
             font={font} setFont={setFont}
+            shop={shop} setShop={setShop}
+            itemsHeaderLabel={itemsHeaderLabel} setItemsHeaderLabel={setItemsHeaderLabel}
+            priceHeaderLabel={priceHeaderLabel} setPriceHeaderLabel={setPriceHeaderLabel}
             colorOverrides={colorOverrides} setColorOverrides={setColorOverrides}
             textStyles={textStyles} setTextStyles={setTextStyles}
             theme={theme}
           />
         </div>
 
-        {/* Card preview + actions */}
-        <div className="order-1 lg:order-2 flex flex-col items-center gap-4">
-          {/* Page tabs when multi-page */}
+        <div className="order-1 lg:order-2 flex flex-col items-center gap-4 relative">
           {totalPages > 1 && (
             <div className="flex items-center gap-2">
               {pages.map((_, i) => (
@@ -218,69 +193,111 @@ const Index: React.FC = () => {
             </div>
           )}
 
-          {/* Active page preview */}
           <div className="glass-panel p-3 glow-border">
             <CardCanvas
-              shop={shop} dayNumber={dayNumber} dayLabel={dayLabel}
-              theme={theme} items={pages[activePage] || []} specialNote={activePage === pages.length - 1 ? specialNote : ""}
-              showGradient={showGradient} font={font}
-              colorOverrides={colorOverrides} textStyles={textStyles}
+              shop={shop}
+              dayNumber={dayNumber}
+              dayLabel={dayLabel}
+              theme={theme}
+              items={pages[activePage] || []}
+              specialNote={activePage === pages.length - 1 ? specialNote : ""}
+              showGradient={showGradient}
+              font={font}
+              itemsHeaderLabel={itemsHeaderLabel}
+              priceHeaderLabel={priceHeaderLabel}
+              colorOverrides={colorOverrides}
+              textStyles={textStyles}
               ref={canvasRefs[activePage]}
-              pageNumber={activePage + 1} totalPages={totalPages}
+              pageNumber={activePage + 1}
+              totalPages={totalPages}
             />
           </div>
 
-          {/* Off-screen render of non-active pages for download/share */}
           <div style={{ position: "absolute", left: "-9999px", top: 0 }} aria-hidden>
             {pages.map((pageItems, pageIdx) =>
               pageIdx !== activePage ? (
                 <CardCanvas
                   key={pageIdx}
-                  shop={shop} dayNumber={dayNumber} dayLabel={dayLabel}
-                  theme={theme} items={pageItems} specialNote={pageIdx === pages.length - 1 ? specialNote : ""}
-                  showGradient={showGradient} font={font}
-                  colorOverrides={colorOverrides} textStyles={textStyles}
+                  shop={shop}
+                  dayNumber={dayNumber}
+                  dayLabel={dayLabel}
+                  theme={theme}
+                  items={pageItems}
+                  specialNote={pageIdx === pages.length - 1 ? specialNote : ""}
+                  showGradient={showGradient}
+                  font={font}
+                  itemsHeaderLabel={itemsHeaderLabel}
+                  priceHeaderLabel={priceHeaderLabel}
+                  colorOverrides={colorOverrides}
+                  textStyles={textStyles}
                   ref={canvasRefs[pageIdx]}
-                  pageNumber={pageIdx + 1} totalPages={totalPages}
+                  pageNumber={pageIdx + 1}
+                  totalPages={totalPages}
                 />
               ) : null
             )}
           </div>
 
-          {/* Action buttons */}
           <div className="flex flex-wrap gap-2 justify-center">
-            <button onClick={handleDownload} disabled={isProcessing}
-              className="glass-panel px-4 py-2.5 flex items-center gap-2 text-sm font-medium text-primary hover:bg-primary/10 transition-colors disabled:opacity-50">
+            <button
+              onClick={handleDownload}
+              disabled={isProcessing}
+              className="glass-panel px-4 py-2.5 flex items-center gap-2 text-sm font-medium text-primary hover:bg-primary/10 transition-colors disabled:opacity-50"
+            >
               {isProcessing ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
               {isProcessing ? "Processing..." : totalPages > 1 ? `Download All (${totalPages})` : "Download HD"}
             </button>
-            <button onClick={handleWhatsApp}
-              className="glass-panel px-3 py-2.5 flex items-center gap-2 text-sm font-medium hover:bg-secondary/80 transition-colors"
-              style={{ color: "#25D366" }}>
+
+            <button
+              disabled={isProcessing}
+              onClick={() => runShare(() => shareToWhatsApp(getCanvasElements(), shareText), "Shared to WhatsApp!")}
+              className="glass-panel px-3 py-2.5 flex items-center gap-2 text-sm font-medium hover:bg-secondary/80 transition-colors disabled:opacity-50"
+              style={{ color: "#25D366" }}
+            >
               <MessageCircle size={16} /> WhatsApp
             </button>
-            <button onClick={handleInstagram}
-              className="glass-panel px-3 py-2.5 flex items-center gap-2 text-sm font-medium hover:bg-secondary/80 transition-colors"
-              style={{ color: "#E1306C" }}>
+
+            <button
+              disabled={isProcessing}
+              onClick={() => runShare(() => shareToInstagram(getCanvasElements()), "Image ready for Instagram!")}
+              className="glass-panel px-3 py-2.5 flex items-center gap-2 text-sm font-medium hover:bg-secondary/80 transition-colors disabled:opacity-50"
+              style={{ color: "#E1306C" }}
+            >
               <Share2 size={16} /> Instagram
             </button>
-            <button onClick={handleFacebook}
-              className="glass-panel px-3 py-2.5 flex items-center gap-2 text-sm font-medium hover:bg-secondary/80 transition-colors"
-              style={{ color: "#1877F2" }}>
+
+            <button
+              disabled={isProcessing}
+              onClick={() => runShare(() => shareToFacebook(getCanvasElements()), "Image ready for Facebook!")}
+              className="glass-panel px-3 py-2.5 flex items-center gap-2 text-sm font-medium hover:bg-secondary/80 transition-colors disabled:opacity-50"
+              style={{ color: "#1877F2" }}
+            >
               <Share2 size={16} /> Facebook
             </button>
-            <button onClick={handleTwitter}
-              className="glass-panel px-3 py-2.5 flex items-center gap-2 text-sm font-medium hover:bg-secondary/80 transition-colors"
-              style={{ color: "#1DA1F2" }}>
+
+            <button
+              disabled={isProcessing}
+              onClick={() => runShare(() => shareToTwitter(getCanvasElements(), shareText), "Image ready for Twitter/X!")}
+              className="glass-panel px-3 py-2.5 flex items-center gap-2 text-sm font-medium hover:bg-secondary/80 transition-colors disabled:opacity-50"
+              style={{ color: "#1DA1F2" }}
+            >
               <Twitter size={16} /> X
             </button>
-            <button onClick={handleTelegram}
-              className="glass-panel px-3 py-2.5 flex items-center gap-2 text-sm font-medium hover:bg-secondary/80 transition-colors"
-              style={{ color: "#0088cc" }}>
+
+            <button
+              disabled={isProcessing}
+              onClick={() => runShare(() => shareToTelegram(getCanvasElements(), shareText), "Shared to Telegram!")}
+              className="glass-panel px-3 py-2.5 flex items-center gap-2 text-sm font-medium hover:bg-secondary/80 transition-colors disabled:opacity-50"
+              style={{ color: "#0088cc" }}
+            >
               <Send size={16} /> Telegram
             </button>
-            <button onClick={handleGenericShare}
-              className="glass-panel px-3 py-2.5 flex items-center gap-2 text-sm font-medium text-foreground hover:bg-secondary/80 transition-colors">
+
+            <button
+              disabled={isProcessing}
+              onClick={() => runShare(() => shareGeneric(getCanvasElements(), shareText), "Shared!")}
+              className="glass-panel px-3 py-2.5 flex items-center gap-2 text-sm font-medium text-foreground hover:bg-secondary/80 transition-colors disabled:opacity-50"
+            >
               <Share2 size={16} /> More
             </button>
           </div>
