@@ -1,9 +1,11 @@
-import React, { useRef, useState, useMemo, createRef } from "react";
+import React, { useRef, useState, useMemo, createRef, useEffect } from "react";
 import AppNav from "@/components/AppNav";
 import CardCanvas from "@/components/CardCanvas";
 import CardControls from "@/components/CardControls";
 import { getThemeForDay, FONT_OPTIONS } from "@/lib/themes";
-import { getShop, saveCard, PriceItem, TextStyleOverrides } from "@/lib/shop";
+import { PriceItem, TextStyleOverrides, Shop } from "@/lib/shop";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { downloadMultipleCards, shareToWhatsApp, shareToInstagram, shareToFacebook, shareToTwitter, shareToTelegram, shareGeneric } from "@/lib/share";
 import { Download, Share2, MessageCircle, Send, Twitter } from "lucide-react";
 import { toast } from "sonner";
