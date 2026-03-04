@@ -105,23 +105,30 @@ const Index: React.FC = () => {
       .filter((el): el is HTMLDivElement => el !== null);
   };
 
+  const [isProcessing, setIsProcessing] = useState(false);
+
   const handleDownload = async () => {
     const elements = getCanvasElements();
     if (elements.length === 0) return;
-    await downloadMultipleCards(elements, `fish-prices-day${dayNumber}`);
-    toast.success(`${elements.length} card${elements.length > 1 ? "s" : ""} downloaded!`);
-    // Save to Supabase
-    if (user) {
-      await supabase.from("price_cards").insert({
-        user_id: user.id,
-        day_number: dayNumber,
-        day_label: dayLabel,
-        background_color: theme.gradient,
-        accent_color: theme.accentColor,
-        items: items as any,
-        special_note: specialNote,
-        is_published: true,
-      });
+    setIsProcessing(true);
+    try {
+      await downloadMultipleCards(elements, `fish-prices-day${dayNumber}`);
+      toast.success(`${elements.length} card${elements.length > 1 ? "s" : ""} downloaded!`);
+      // Save to Supabase
+      if (user) {
+        await supabase.from("price_cards").insert({
+          user_id: user.id,
+          day_number: dayNumber,
+          day_label: dayLabel,
+          background_color: theme.gradient,
+          accent_color: theme.accentColor,
+          items: items as any,
+          special_note: specialNote,
+          is_published: true,
+        });
+      }
+    } finally {
+      setIsProcessing(false);
     }
   };
 
