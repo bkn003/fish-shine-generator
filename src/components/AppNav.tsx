@@ -1,13 +1,16 @@
 import React from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import { Fish, Settings, Image, Sparkles } from "lucide-react";
+import { Fish, Settings, Image, Sparkles, Palette, LogOut } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 const AppNav: React.FC = () => {
   const location = useLocation();
+  const { signOut, user } = useAuth();
   const links = [
     { to: "/", label: "Generator", icon: Sparkles },
     { to: "/shop-setup", label: "Shop Setup", icon: Settings },
     { to: "/my-cards", label: "My Cards", icon: Image },
+    { to: "/theme-gallery", label: "Themes", icon: Palette },
   ];
 
   return (
@@ -23,6 +26,11 @@ const AppNav: React.FC = () => {
           {label}
         </NavLink>
       ))}
+      {user && (
+        <button onClick={() => signOut()} className="nav-link flex items-center gap-1.5 text-sm ml-auto">
+          <LogOut size={14} /> Sign Out
+        </button>
+      )}
     </nav>
   );
 };
