@@ -72,45 +72,46 @@ const CardCanvas = forwardRef<HTMLDivElement, CardCanvasProps>(({
         pointerEvents: "none",
       }} />
 
-      {/* Header - 100px */}
-      <div style={{ height: 100, padding: "12px 16px", display: "flex", alignItems: "center", gap: 12 }}>
+      {/* Header - increased to 110px for Tamil text */}
+      <div style={{ height: 110, padding: "10px 16px", display: "flex", alignItems: "center", gap: 12 }}>
         {shop.logo_url && (
-          <img src={shop.logo_url} alt="logo" style={{ width: 50, height: 50, borderRadius: 8, objectFit: "cover" }} />
+          <img src={shop.logo_url} alt="logo" style={{ width: 50, height: 50, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} />
         )}
-        <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
           <div style={{
-            ...ts("shopName", { size: 20, bold: true }),
-            color: shopNameC, lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+            ...ts("shopName", { size: 18, bold: true }),
+            color: shopNameC, lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
           }}>
             {shop.shop_name}
           </div>
           {shop.shop_name_tamil && (
             <div style={{
-              ...ts("shopNameTamil", { size: 13, bold: false }),
-              color: textStyles.shopNameTamil?.color || tamilTextC, lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+              ...ts("shopNameTamil", { size: 12, bold: false }),
+              color: textStyles.shopNameTamil?.color || tamilTextC, lineHeight: 1.4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+              marginTop: 2,
             }}>
               {shop.shop_name_tamil}
             </div>
           )}
           <div style={{
-            ...ts("tagline", { size: 11, bold: false }),
-            color: textStyles.tagline?.color || accent, lineHeight: 1.3,
+            ...ts("tagline", { size: 10, bold: false }),
+            color: textStyles.tagline?.color || accent, lineHeight: 1.3, marginTop: 2,
           }}>{shop.tagline}</div>
         </div>
         {shop.phone && (
-          <div style={{ fontSize: 11, color: itemTextC, textAlign: "right", opacity: 0.8 }}>
+          <div style={{ fontSize: 10, color: itemTextC, textAlign: "right", opacity: 0.8, flexShrink: 0 }}>
             📞 {shop.phone}
           </div>
         )}
       </div>
 
-      {/* Day Banner - 40px */}
+      {/* Day Banner - 38px */}
       <div style={{
-        height: 40, background: bannerC, display: "flex", alignItems: "center",
-        justifyContent: "center", gap: 8,
+        height: 38, background: bannerC, display: "flex", alignItems: "center",
+        justifyContent: "center", gap: 8, flexShrink: 0,
       }}>
         <span style={{
-          ...ts("dayBanner", { size: 16, bold: true }),
+          ...ts("dayBanner", { size: 14, bold: true }),
           color: bannerTextC, letterSpacing: 1,
         }}>
           📅 {dayLabel} — Day {dayNumber}
@@ -118,12 +119,12 @@ const CardCanvas = forwardRef<HTMLDivElement, CardCanvasProps>(({
         </span>
       </div>
 
-      {/* Delivery note - 28px */}
+      {/* Delivery note - 26px */}
       {shop.delivery_note && (
         <div style={{
-          height: 28, background: `${accent}22`, display: "flex", alignItems: "center",
-          justifyContent: "center",
-          ...ts("deliveryNote", { size: 11, bold: false }),
+          height: 26, background: `${accent}22`, display: "flex", alignItems: "center",
+          justifyContent: "center", flexShrink: 0,
+          ...ts("deliveryNote", { size: 10, bold: false }),
           color: textStyles.deliveryNote?.color || accent,
         }}>
           🚚 {shop.delivery_note}
@@ -132,49 +133,51 @@ const CardCanvas = forwardRef<HTMLDivElement, CardCanvasProps>(({
 
       {/* Items list - flexible */}
       <div style={{
-        flex: 1, padding: "8px 12px", overflow: "hidden",
-        display: "flex", flexDirection: "column", gap: 2,
+        flex: 1, padding: "6px 12px", overflow: "hidden",
+        display: "flex", flexDirection: "column", gap: 1,
       }}>
         {/* Header row */}
         <div style={{
-          display: "flex", alignItems: "center", padding: "4px 8px",
-          borderBottom: `1px solid ${accent}44`, marginBottom: 2,
+          display: "flex", alignItems: "center", padding: "3px 8px",
+          borderBottom: `1px solid ${accent}44`, marginBottom: 2, flexShrink: 0,
         }}>
-          <span style={{ flex: 1, fontSize: 11, fontWeight: 700, color: accent, textTransform: "uppercase", letterSpacing: 1 }}>
+          <span style={{ flex: 1, fontSize: 10, fontWeight: 700, color: accent, textTransform: "uppercase", letterSpacing: 1 }}>
             Fish / மீன்
           </span>
-          <span style={{ fontSize: 11, fontWeight: 700, color: accent, textTransform: "uppercase", letterSpacing: 1 }}>
+          <span style={{ fontSize: 10, fontWeight: 700, color: accent, textTransform: "uppercase", letterSpacing: 1 }}>
             Price
           </span>
         </div>
 
         {items.map((item, i) => (
           <div key={i} style={{
-            display: "flex", alignItems: "center", padding: "4px 8px",
+            display: "flex", alignItems: "center", padding: "5px 8px",
             background: i % 2 === 0 ? "rgba(255,255,255,0.04)" : "transparent",
-            borderRadius: 4,
+            borderRadius: 4, minHeight: 38, flexShrink: 0,
           }}>
-            <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ flex: 1, minWidth: 0, paddingRight: 8 }}>
               <div style={{
-                ...ts("itemName", { size: 14, bold: true }),
+                ...ts("itemName", { size: 13, bold: true }),
                 color: itemTextC, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                lineHeight: 1.3,
               }}>
                 {item.name}
               </div>
               {item.name_tamil && (
                 <div style={{
-                  ...ts("itemNameTamil", { size: 11, bold: false }),
+                  ...ts("itemNameTamil", { size: 10, bold: false }),
                   color: tamilTextC, opacity: 0.85, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                  lineHeight: 1.4, marginTop: 1,
                 }}>
                   {item.name_tamil}
                 </div>
               )}
             </div>
             <div style={{
-              background: badgeC, color: badgeTextC, padding: "3px 12px",
+              background: badgeC, color: badgeTextC, padding: "3px 10px",
               borderRadius: 20,
-              ...ts("priceBadge", { size: 13, bold: true }),
-              minWidth: 60, textAlign: "center", whiteSpace: "nowrap",
+              ...ts("priceBadge", { size: 12, bold: true }),
+              minWidth: 55, textAlign: "center", whiteSpace: "nowrap", flexShrink: 0,
             }}>
               ₹{item.price}
             </div>
@@ -182,12 +185,12 @@ const CardCanvas = forwardRef<HTMLDivElement, CardCanvasProps>(({
         ))}
       </div>
 
-      {/* Special note - 36px */}
+      {/* Special note - 32px */}
       {specialNote && (
         <div style={{
-          height: 36, padding: "0 16px", display: "flex", alignItems: "center",
-          justifyContent: "center", background: "rgba(0,0,0,0.25)",
-          ...ts("specialNote", { size: 12, bold: false }),
+          height: 32, padding: "0 16px", display: "flex", alignItems: "center",
+          justifyContent: "center", background: "rgba(0,0,0,0.25)", flexShrink: 0,
+          ...ts("specialNote", { size: 11, bold: false }),
           color: textStyles.specialNote?.color || accent,
           fontStyle: "italic",
           overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
@@ -196,24 +199,25 @@ const CardCanvas = forwardRef<HTMLDivElement, CardCanvasProps>(({
         </div>
       )}
 
-      {/* Footer - 46px */}
+      {/* Footer - slim branding bar */}
       <div style={{
-        height: 46, padding: "0 16px", display: "flex", alignItems: "center",
-        justifyContent: "space-between", background: "rgba(0,0,0,0.3)",
-        borderTop: `1px solid ${accent}33`,
+        height: 24, padding: "0 16px", display: "flex", alignItems: "center",
+        justifyContent: "center", background: "rgba(0,0,0,0.3)",
+        borderTop: `1px solid ${accent}33`, flexShrink: 0,
       }}>
-        <div style={{
-          ...ts("footer", { size: 10, bold: false }),
-          color: textStyles.footer?.color || itemTextC, opacity: 0.6,
-        }}>
-          {shop.address || "Fresh daily catch"}
-        </div>
-        <div style={{
-          fontSize: 9, color: accent, opacity: 0.7,
-          padding: "2px 8px", border: `1px solid ${accent}44`, borderRadius: 10,
-        }}>
-          Theme: {theme.name}
-        </div>
+        {shop.phone && (
+          <span style={{ fontSize: 9, color: itemTextC, opacity: 0.5 }}>
+            📞 {shop.phone}
+          </span>
+        )}
+        {shop.phone && shop.address && (
+          <span style={{ fontSize: 9, color: itemTextC, opacity: 0.3, margin: "0 6px" }}>•</span>
+        )}
+        {shop.address && (
+          <span style={{ fontSize: 9, color: itemTextC, opacity: 0.5 }}>
+            📍 {shop.address}
+          </span>
+        )}
       </div>
     </div>
   );

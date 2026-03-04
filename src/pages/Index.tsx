@@ -7,8 +7,9 @@ import { PriceItem, TextStyleOverrides, Shop } from "@/lib/shop";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { downloadMultipleCards, shareToWhatsApp, shareToInstagram, shareToFacebook, shareToTwitter, shareToTelegram, shareGeneric } from "@/lib/share";
-import { Download, Share2, MessageCircle, Send, Twitter } from "lucide-react";
+import { Download, Share2, MessageCircle, Send, Twitter, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useSearchParams } from "react-router-dom";
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const MAX_ITEMS_PER_PAGE = 10;
@@ -35,8 +36,10 @@ const DEFAULT_ITEMS: PriceItem[] = [
 const Index: React.FC = () => {
   const now = new Date();
   const dayOfYear = Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 86400000);
+  const [searchParams] = useSearchParams();
+  const dayFromGallery = searchParams.get("day");
 
-  const [dayNumber, setDayNumber] = useState(dayOfYear);
+  const [dayNumber, setDayNumber] = useState(dayFromGallery ? parseInt(dayFromGallery) : dayOfYear);
   const [dayLabel, setDayLabel] = useState(DAYS[now.getDay()]);
   const [items, setItems] = useState<PriceItem[]>(DEFAULT_ITEMS);
   const [specialNote, setSpecialNote] = useState("Order before 8 AM for same-day delivery!");
@@ -102,23 +105,30 @@ const Index: React.FC = () => {
       .filter((el): el is HTMLDivElement => el !== null);
   };
 
+  const [isProcessing, setIsProcessing] = useState(false);
+
   const handleDownload = async () => {
     const elements = getCanvasElements();
     if (elements.length === 0) return;
-    await downloadMultipleCards(elements, `fish-prices-day${dayNumber}`);
-    toast.success(`${elements.length} card${elements.length > 1 ? "s" : ""} downloaded!`);
-    // Save to Supabase
-    if (user) {
-      await supabase.from("price_cards").insert({
-        user_id: user.id,
-        day_number: dayNumber,
-        day_label: dayLabel,
-        background_color: theme.gradient,
-        accent_color: theme.accentColor,
-        items: items as any,
-        special_note: specialNote,
-        is_published: true,
-      });
+    setIsProcessing(true);
+    try {
+      await downloadMultipleCards(elements, `fish-prices-day${dayNumber}`);
+      toast.success(`${elements.length} card${elements.length > 1 ? "s" : ""} downloaded!`);
+      // Save to Supabase
+      if (user) {
+        await supabase.from("price_cards").insert({
+          user_id: user.id,
+          day_number: dayNumber,
+          day_label: dayLabel,
+          background_color: theme.gradient,
+          accent_color: theme.accentColor,
+          items: items as any,
+          special_note: specialNote,
+          is_published: true,
+        });
+      }
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -208,28 +218,41 @@ const Index: React.FC = () => {
             </div>
           )}
 
-          {/* Render all pages but only show active */}
-          {pages.map((pageItems, pageIdx) => (
-            <div
-              key={pageIdx}
-              className={`glass-panel p-3 glow-border ${pageIdx !== activePage ? "hidden" : ""}`}
-            >
-              <CardCanvas
-                shop={shop} dayNumber={dayNumber} dayLabel={dayLabel}
-                theme={theme} items={pageItems} specialNote={pageIdx === pages.length - 1 ? specialNote : ""}
-                showGradient={showGradient} font={font}
-                colorOverrides={colorOverrides} textStyles={textStyles}
-                ref={canvasRefs[pageIdx]}
-                pageNumber={pageIdx + 1} totalPages={totalPages}
-              />
-            </div>
-          ))}
+          {/* Active page preview */}
+          <div className="glass-panel p-3 glow-border">
+            <CardCanvas
+              shop={shop} dayNumber={dayNumber} dayLabel={dayLabel}
+              theme={theme} items={pages[activePage] || []} specialNote={activePage === pages.length - 1 ? specialNote : ""}
+              showGradient={showGradient} font={font}
+              colorOverrides={colorOverrides} textStyles={textStyles}
+              ref={canvasRefs[activePage]}
+              pageNumber={activePage + 1} totalPages={totalPages}
+            />
+          </div>
+
+          {/* Off-screen render of non-active pages for download/share */}
+          <div style={{ position: "absolute", left: "-9999px", top: 0 }} aria-hidden>
+            {pages.map((pageItems, pageIdx) =>
+              pageIdx !== activePage ? (
+                <CardCanvas
+                  key={pageIdx}
+                  shop={shop} dayNumber={dayNumber} dayLabel={dayLabel}
+                  theme={theme} items={pageItems} specialNote={pageIdx === pages.length - 1 ? specialNote : ""}
+                  showGradient={showGradient} font={font}
+                  colorOverrides={colorOverrides} textStyles={textStyles}
+                  ref={canvasRefs[pageIdx]}
+                  pageNumber={pageIdx + 1} totalPages={totalPages}
+                />
+              ) : null
+            )}
+          </div>
 
           {/* Action buttons */}
           <div className="flex flex-wrap gap-2 justify-center">
-            <button onClick={handleDownload}
-              className="glass-panel px-4 py-2.5 flex items-center gap-2 text-sm font-medium text-primary hover:bg-primary/10 transition-colors">
-              <Download size={16} /> Download {totalPages > 1 ? `All (${totalPages})` : "HD"}
+            <button onClick={handleDownload} disabled={isProcessing}
+              className="glass-panel px-4 py-2.5 flex items-center gap-2 text-sm font-medium text-primary hover:bg-primary/10 transition-colors disabled:opacity-50">
+              {isProcessing ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+              {isProcessing ? "Processing..." : totalPages > 1 ? `Download All (${totalPages})` : "Download HD"}
             </button>
             <button onClick={handleWhatsApp}
               className="glass-panel px-3 py-2.5 flex items-center gap-2 text-sm font-medium hover:bg-secondary/80 transition-colors"
