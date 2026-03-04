@@ -188,7 +188,7 @@ const Index: React.FC = () => {
                 theme={theme} items={pageItems} specialNote={pageIdx === pages.length - 1 ? specialNote : ""}
                 showGradient={showGradient} font={font}
                 colorOverrides={colorOverrides} textStyles={textStyles}
-                canvasRef={canvasRefs[pageIdx]}
+                ref={canvasRefs[pageIdx]}
                 pageNumber={pageIdx + 1} totalPages={totalPages}
               />
             </div>
