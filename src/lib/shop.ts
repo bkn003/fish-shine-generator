@@ -9,10 +9,20 @@ export interface Shop {
   owner_email: string;
 }
 
+export interface PriceItemStyle {
+  rowBackground?: string;
+  badgeBackground?: string;
+  nameColor?: string;
+  tamilColor?: string;
+  priceColor?: string;
+}
+
 export interface PriceItem {
+  id: string;
   name: string;
   name_tamil: string;
   price: string;
+  style?: PriceItemStyle;
 }
 
 export interface TextStyle {
@@ -48,12 +58,51 @@ export interface PriceCard {
   image_data?: string;
 }
 
+export interface PosterPresetData {
+  dayNumber: number;
+  dayLabel: string;
+  items: PriceItem[];
+  specialNote: string;
+  showGradient: boolean;
+  usePremiumBackground: boolean;
+  font: string;
+  itemsHeaderLabel: string;
+  priceHeaderLabel: string;
+  shop: Shop;
+  colorOverrides: {
+    accent?: string;
+    shopName?: string;
+    itemText?: string;
+    tamilText?: string;
+    priceBadge?: string;
+    dayBanner?: string;
+  };
+  textStyles: TextStyleOverrides;
+}
+
+export interface PosterPreset {
+  id: string;
+  name: string;
+  created_at: string;
+  data: PosterPresetData;
+}
+
 const SHOP_KEY = "fish_price_shop";
 const CARDS_KEY = "fish_price_cards";
+const PRESETS_KEY = "fish_price_presets";
+
+function parseJSON<T>(raw: string | null, fallback: T): T {
+  if (!raw) return fallback;
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return fallback;
+  }
+}
 
 export function getShop(): Shop {
-  const data = localStorage.getItem(SHOP_KEY);
-  if (data) return JSON.parse(data);
+  const data = parseJSON<Shop | null>(localStorage.getItem(SHOP_KEY), null);
+  if (data) return data;
   return {
     shop_name: "Fresh Fish Market",
     shop_name_tamil: "புதிய மீன் சந்தை",
@@ -71,20 +120,36 @@ export function saveShop(shop: Shop) {
 }
 
 export function getSavedCards(): PriceCard[] {
-  const data = localStorage.getItem(CARDS_KEY);
-  if (data) return JSON.parse(data);
-  return [];
+  return parseJSON<PriceCard[]>(localStorage.getItem(CARDS_KEY), []);
 }
 
 export function saveCard(card: PriceCard) {
   const cards = getSavedCards();
-  const idx = cards.findIndex(c => c.id === card.id);
+  const idx = cards.findIndex((c) => c.id === card.id);
   if (idx >= 0) cards[idx] = card;
   else cards.unshift(card);
   localStorage.setItem(CARDS_KEY, JSON.stringify(cards));
 }
 
 export function deleteCard(id: string) {
-  const cards = getSavedCards().filter(c => c.id !== id);
+  const cards = getSavedCards().filter((c) => c.id !== id);
   localStorage.setItem(CARDS_KEY, JSON.stringify(cards));
+}
+
+export function getPosterPresets(): PosterPreset[] {
+  const presets = parseJSON<PosterPreset[]>(localStorage.getItem(PRESETS_KEY), []);
+  return presets.sort((a, b) => b.created_at.localeCompare(a.created_at));
+}
+
+export function savePosterPreset(preset: PosterPreset) {
+  const presets = getPosterPresets();
+  const idx = presets.findIndex((p) => p.id === preset.id);
+  if (idx >= 0) presets[idx] = preset;
+  else presets.unshift(preset);
+  localStorage.setItem(PRESETS_KEY, JSON.stringify(presets));
+}
+
+export function deletePosterPreset(id: string) {
+  const presets = getPosterPresets().filter((preset) => preset.id !== id);
+  localStorage.setItem(PRESETS_KEY, JSON.stringify(presets));
 }

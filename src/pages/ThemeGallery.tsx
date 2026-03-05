@@ -2,7 +2,7 @@ import React, { useState, useMemo } from "react";
 import AppNav from "@/components/AppNav";
 import { getThemeForDay } from "@/lib/themes";
 import { Input } from "@/components/ui/input";
-import { Search, Check } from "lucide-react";
+import { Search, Check, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -24,9 +24,7 @@ const ThemeGallery: React.FC = () => {
   const filtered = useMemo(() => {
     if (!search.trim()) return allThemes;
     const q = search.toLowerCase();
-    return allThemes.filter(t =>
-      t.theme.name.toLowerCase().includes(q) || String(t.day).includes(q)
-    );
+    return allThemes.filter((t) => t.theme.name.toLowerCase().includes(q) || String(t.day).includes(q));
   }, [allThemes, search]);
 
   const totalPages = Math.ceil(filtered.length / PER_PAGE);
@@ -45,13 +43,18 @@ const ThemeGallery: React.FC = () => {
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div>
             <h2 className="text-lg font-bold text-primary glow-text">365 Theme Gallery</h2>
-            <p className="text-xs text-muted-foreground mt-1">Click any theme to apply it to the card generator</p>
+            <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+              <Sparkles size={12} /> Click any theme to apply 365-day premium fish-art backgrounds
+            </p>
           </div>
           <div className="relative w-64">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={search}
-              onChange={e => { setSearch(e.target.value); setPage(0); }}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(0);
+              }}
               placeholder="Search theme or day..."
               className="bg-secondary border-border pl-8 h-8 text-xs"
             />
@@ -68,26 +71,31 @@ const ThemeGallery: React.FC = () => {
             title={`Click to apply "${theme.name}" theme`}
           >
             <div
-              style={{ background: theme.gradient, height: 80 }}
+              style={{
+                backgroundImage: `${theme.premiumPattern}, ${theme.gradient}`,
+                backgroundSize: "cover, cover",
+                backgroundBlendMode: "screen, normal",
+                height: 80,
+              }}
               className="relative flex flex-col items-center justify-center"
             >
               <div
                 style={{
-                  position: "absolute", top: -10, right: -10,
-                  width: 40, height: 40, borderRadius: "50%",
+                  position: "absolute",
+                  top: -10,
+                  right: -10,
+                  width: 40,
+                  height: 40,
+                  borderRadius: "50%",
                   background: `radial-gradient(circle, ${theme.glowColor}44, transparent)`,
                 }}
               />
-              {/* Hover overlay */}
+
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
                 <Check size={20} className="text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg" />
               </div>
-              <span style={{ color: theme.shopNameColor, fontSize: 10, fontWeight: 700 }}>
-                Day {day}
-              </span>
-              <div
-                style={{ background: theme.badgeColor, color: theme.accentColor, fontSize: 8, padding: "1px 6px", borderRadius: 8, marginTop: 2 }}
-              >
+              <span style={{ color: theme.shopNameColor, fontSize: 10, fontWeight: 700 }}>Day {day}</span>
+              <div style={{ background: theme.badgeColor, color: theme.accentColor, fontSize: 8, padding: "1px 6px", borderRadius: 8, marginTop: 2 }}>
                 ₹250
               </div>
             </div>
@@ -98,7 +106,6 @@ const ThemeGallery: React.FC = () => {
         ))}
       </div>
 
-      {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-center gap-2 mt-6 flex-wrap">
           {Array.from({ length: totalPages }, (_, i) => (

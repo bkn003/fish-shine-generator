@@ -1,9 +1,18 @@
-import React, { useState, useMemo, createRef, useEffect } from "react";
+import React, { useState, useMemo, createRef, useEffect, useCallback } from "react";
 import AppNav from "@/components/AppNav";
 import CardCanvas from "@/components/CardCanvas";
 import CardControls from "@/components/CardControls";
 import { getThemeForDay, FONT_OPTIONS } from "@/lib/themes";
-import { PriceItem, TextStyleOverrides, Shop } from "@/lib/shop";
+import {
+  PriceItem,
+  TextStyleOverrides,
+  Shop,
+  PosterPreset,
+  PosterPresetData,
+  getPosterPresets,
+  savePosterPreset,
+  deletePosterPreset,
+} from "@/lib/shop";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { downloadMultipleCards, shareToWhatsApp, shareToInstagram, shareToFacebook, shareToTwitter, shareToTelegram, shareGeneric } from "@/lib/share";
@@ -14,24 +23,35 @@ import { useSearchParams } from "react-router-dom";
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const MAX_ITEMS_PER_PAGE = 10;
 
+const createItemId = () => (typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
+
 const DEFAULT_ITEMS: PriceItem[] = [
-  { name: "Seer Fish", name_tamil: "வஞ்சிரம்", price: "850" },
-  { name: "Prawns", name_tamil: "இறால்", price: "450" },
-  { name: "Pomfret", name_tamil: "வாவல்", price: "600" },
-  { name: "Sardine", name_tamil: "மத்தி", price: "150" },
-  { name: "Red Snapper", name_tamil: "சங்கரா", price: "500" },
-  { name: "Mackerel", name_tamil: "காணாங்கெளுத்தி", price: "200" },
-  { name: "Crab", name_tamil: "நண்டு", price: "350" },
-  { name: "Squid", name_tamil: "கணவாய்", price: "400" },
-  { name: "Tuna", name_tamil: "சூரை", price: "550" },
-  { name: "Anchovy", name_tamil: "நெத்திலி", price: "120" },
-  { name: "Catfish", name_tamil: "கெளுத்தி", price: "280" },
-  { name: "Lobster", name_tamil: "கடல் இறால்", price: "1200" },
-  { name: "Barramundi", name_tamil: "கொடுவாய்", price: "650" },
-  { name: "Tilapia", name_tamil: "திலாப்பியா", price: "180" },
-  { name: "King Fish", name_tamil: "வஞ்சிரம் பெரியது", price: "950" },
-  { name: "Silver Fish", name_tamil: "வெள்ளி மீன்", price: "160" },
+  { id: "seer-fish", name: "Seer Fish", name_tamil: "வஞ்சிரம்", price: "850" },
+  { id: "prawns", name: "Prawns", name_tamil: "இறால்", price: "450" },
+  { id: "pomfret", name: "Pomfret", name_tamil: "வாவல்", price: "600" },
+  { id: "sardine", name: "Sardine", name_tamil: "மத்தி", price: "150" },
+  { id: "red-snapper", name: "Red Snapper", name_tamil: "சங்கரா", price: "500" },
+  { id: "mackerel", name: "Mackerel", name_tamil: "காணாங்கெளுத்தி", price: "200" },
+  { id: "crab", name: "Crab", name_tamil: "நண்டு", price: "350" },
+  { id: "squid", name: "Squid", name_tamil: "கணவாய்", price: "400" },
+  { id: "tuna", name: "Tuna", name_tamil: "சூரை", price: "550" },
+  { id: "anchovy", name: "Anchovy", name_tamil: "நெத்திலி", price: "120" },
+  { id: "catfish", name: "Catfish", name_tamil: "கெளுத்தி", price: "280" },
+  { id: "lobster", name: "Lobster", name_tamil: "கடல் இறால்", price: "1200" },
+  { id: "barramundi", name: "Barramundi", name_tamil: "கொடுவாய்", price: "650" },
+  { id: "tilapia", name: "Tilapia", name_tamil: "திலாப்பியா", price: "180" },
+  { id: "king-fish", name: "King Fish", name_tamil: "வஞ்சிரம் பெரியது", price: "950" },
+  { id: "silver-fish", name: "Silver Fish", name_tamil: "வெள்ளி மீன்", price: "160" },
 ];
+
+const normalizeItems = (list: PriceItem[]): PriceItem[] =>
+  list.map((item) => ({
+    id: item.id || createItemId(),
+    name: item.name || "",
+    name_tamil: item.name_tamil || "",
+    price: item.price || "",
+    style: item.style,
+  }));
 
 const Index: React.FC = () => {
   const now = new Date();
@@ -43,15 +63,20 @@ const Index: React.FC = () => {
 
   const [dayNumber, setDayNumber] = useState(initialDay);
   const [dayLabel, setDayLabel] = useState(DAYS[now.getDay()]);
-  const [items, setItems] = useState<PriceItem[]>(DEFAULT_ITEMS);
+  const [items, setItems] = useState<PriceItem[]>(normalizeItems(DEFAULT_ITEMS));
   const [specialNote, setSpecialNote] = useState("Order before 8 AM for same-day delivery!");
   const [showGradient, setShowGradient] = useState(true);
+  const [usePremiumBackground, setUsePremiumBackground] = useState(true);
   const [font, setFont] = useState(FONT_OPTIONS[0].value);
   const [itemsHeaderLabel, setItemsHeaderLabel] = useState("Fish / மீன்");
   const [priceHeaderLabel, setPriceHeaderLabel] = useState("Price");
   const [colorOverrides, setColorOverrides] = useState<{
-    accent?: string; shopName?: string; itemText?: string;
-    tamilText?: string; priceBadge?: string; dayBanner?: string;
+    accent?: string;
+    shopName?: string;
+    itemText?: string;
+    tamilText?: string;
+    priceBadge?: string;
+    dayBanner?: string;
   }>({});
   const [textStyles, setTextStyles] = useState<TextStyleOverrides>({});
   const [activePage, setActivePage] = useState(0);
@@ -66,6 +91,8 @@ const Index: React.FC = () => {
     owner_email: "",
   });
   const [isProcessing, setIsProcessing] = useState(false);
+  const [presets, setPresets] = useState<PosterPreset[]>(() => getPosterPresets());
+  const [activePresetId, setActivePresetId] = useState("");
   const { user } = useAuth();
 
   useEffect(() => {
@@ -103,23 +130,107 @@ const Index: React.FC = () => {
     return result.length > 0 ? result : [[]];
   }, [items]);
 
+  useEffect(() => {
+    if (activePage >= pages.length) {
+      setActivePage(Math.max(0, pages.length - 1));
+    }
+  }, [activePage, pages.length]);
+
   const totalPages = pages.length;
 
-  const canvasRefs = useMemo(() => {
+  const captureRefs = useMemo(() => {
     return pages.map(() => createRef<HTMLDivElement>());
   }, [pages.length]);
 
-  const getCanvasElements = (): HTMLElement[] => {
-    return canvasRefs.map((r) => r.current).filter((el): el is HTMLDivElement => el !== null);
+  const getCanvasElements = () => {
+    return captureRefs.map((r) => r.current).filter((el): el is HTMLDivElement => el !== null);
+  };
+
+  const buildPresetData = useCallback(
+    (): PosterPresetData => ({
+      dayNumber,
+      dayLabel,
+      items: normalizeItems(items),
+      specialNote,
+      showGradient,
+      usePremiumBackground,
+      font,
+      itemsHeaderLabel,
+      priceHeaderLabel,
+      shop,
+      colorOverrides,
+      textStyles,
+    }),
+    [
+      dayNumber,
+      dayLabel,
+      items,
+      specialNote,
+      showGradient,
+      usePremiumBackground,
+      font,
+      itemsHeaderLabel,
+      priceHeaderLabel,
+      shop,
+      colorOverrides,
+      textStyles,
+    ],
+  );
+
+  const applyPresetData = useCallback((data: PosterPresetData) => {
+    setDayNumber(data.dayNumber || 1);
+    setDayLabel(data.dayLabel || "");
+    setItems(normalizeItems(data.items || []));
+    setSpecialNote(data.specialNote || "");
+    setShowGradient(Boolean(data.showGradient));
+    setUsePremiumBackground(data.usePremiumBackground !== false);
+    setFont(data.font || FONT_OPTIONS[0].value);
+    setItemsHeaderLabel(data.itemsHeaderLabel || "Fish / மீன்");
+    setPriceHeaderLabel(data.priceHeaderLabel || "Price");
+    setShop(data.shop || shop);
+    setColorOverrides(data.colorOverrides || {});
+    setTextStyles(data.textStyles || {});
+    setActivePage(0);
+  }, [shop]);
+
+  const handleApplyPreset = (presetId: string) => {
+    const preset = presets.find((p) => p.id === presetId);
+    if (!preset) return;
+    applyPresetData(preset.data);
+    setActivePresetId(presetId);
+    toast.success(`Preset "${preset.name}" applied`);
+  };
+
+  const handleSavePreset = (name: string) => {
+    const preset: PosterPreset = {
+      id: createItemId(),
+      name,
+      created_at: new Date().toISOString(),
+      data: buildPresetData(),
+    };
+    savePosterPreset(preset);
+    setPresets(getPosterPresets());
+    setActivePresetId(preset.id);
+    toast.success(`Preset "${name}" saved`);
+  };
+
+  const handleDeletePreset = (presetId: string) => {
+    const preset = presets.find((p) => p.id === presetId);
+    deletePosterPreset(presetId);
+    setPresets(getPosterPresets());
+    if (activePresetId === presetId) setActivePresetId("");
+    toast.success(`Preset "${preset?.name || "selected"}" deleted`);
   };
 
   const handleDownload = async () => {
     const elements = getCanvasElements();
     if (elements.length === 0) return;
+
     setIsProcessing(true);
     try {
       await downloadMultipleCards(elements, `fish-prices-day${dayNumber}`);
       toast.success(`${elements.length} card${elements.length > 1 ? "s" : ""} downloaded!`);
+
       if (user) {
         await supabase.from("price_cards").insert({
           user_id: user.id,
@@ -132,20 +243,25 @@ const Index: React.FC = () => {
           is_published: true,
         });
       }
+    } catch {
+      toast.error("Download failed. Please try once more.");
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const shareText = `🐟 Today's Fish Prices from ${shop.shop_name}! Day ${dayNumber}`;
+  const shareText = `🐟 Today's Fish Prices from ${shop.shop_name} - ${dayLabel}`;
 
   const runShare = async (fn: () => Promise<void>, msg: string) => {
     const el = getCanvasElements();
     if (!el.length) return;
+
     setIsProcessing(true);
     try {
       await fn();
       toast.success(msg);
+    } catch {
+      toast.error("Share failed. Please try again.");
     } finally {
       setIsProcessing(false);
     }
@@ -158,18 +274,36 @@ const Index: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_520px] gap-6">
         <div className="order-2 lg:order-1">
           <CardControls
-            dayNumber={dayNumber} setDayNumber={setDayNumber}
-            dayLabel={dayLabel} setDayLabel={setDayLabel}
-            items={items} setItems={setItems}
-            specialNote={specialNote} setSpecialNote={setSpecialNote}
-            showGradient={showGradient} setShowGradient={setShowGradient}
-            font={font} setFont={setFont}
-            shop={shop} setShop={setShop}
-            itemsHeaderLabel={itemsHeaderLabel} setItemsHeaderLabel={setItemsHeaderLabel}
-            priceHeaderLabel={priceHeaderLabel} setPriceHeaderLabel={setPriceHeaderLabel}
-            colorOverrides={colorOverrides} setColorOverrides={setColorOverrides}
-            textStyles={textStyles} setTextStyles={setTextStyles}
+            dayNumber={dayNumber}
+            setDayNumber={setDayNumber}
+            dayLabel={dayLabel}
+            setDayLabel={setDayLabel}
+            items={items}
+            setItems={setItems}
+            specialNote={specialNote}
+            setSpecialNote={setSpecialNote}
+            showGradient={showGradient}
+            setShowGradient={setShowGradient}
+            usePremiumBackground={usePremiumBackground}
+            setUsePremiumBackground={setUsePremiumBackground}
+            font={font}
+            setFont={setFont}
+            shop={shop}
+            setShop={setShop}
+            itemsHeaderLabel={itemsHeaderLabel}
+            setItemsHeaderLabel={setItemsHeaderLabel}
+            priceHeaderLabel={priceHeaderLabel}
+            setPriceHeaderLabel={setPriceHeaderLabel}
+            colorOverrides={colorOverrides}
+            setColorOverrides={setColorOverrides}
+            textStyles={textStyles}
+            setTextStyles={setTextStyles}
             theme={theme}
+            presets={presets}
+            activePresetId={activePresetId}
+            onApplyPreset={handleApplyPreset}
+            onSavePreset={handleSavePreset}
+            onDeletePreset={handleDeletePreset}
           />
         </div>
 
@@ -196,46 +330,41 @@ const Index: React.FC = () => {
           <div className="glass-panel p-3 glow-border">
             <CardCanvas
               shop={shop}
-              dayNumber={dayNumber}
               dayLabel={dayLabel}
+              dayNumber={dayNumber}
               theme={theme}
               items={pages[activePage] || []}
               specialNote={activePage === pages.length - 1 ? specialNote : ""}
               showGradient={showGradient}
+              usePremiumBackground={usePremiumBackground}
               font={font}
               itemsHeaderLabel={itemsHeaderLabel}
               priceHeaderLabel={priceHeaderLabel}
               colorOverrides={colorOverrides}
               textStyles={textStyles}
-              ref={canvasRefs[activePage]}
-              pageNumber={activePage + 1}
-              totalPages={totalPages}
             />
           </div>
 
-          <div style={{ position: "absolute", left: "-9999px", top: 0 }} aria-hidden>
-            {pages.map((pageItems, pageIdx) =>
-              pageIdx !== activePage ? (
-                <CardCanvas
-                  key={pageIdx}
-                  shop={shop}
-                  dayNumber={dayNumber}
-                  dayLabel={dayLabel}
-                  theme={theme}
-                  items={pageItems}
-                  specialNote={pageIdx === pages.length - 1 ? specialNote : ""}
-                  showGradient={showGradient}
-                  font={font}
-                  itemsHeaderLabel={itemsHeaderLabel}
-                  priceHeaderLabel={priceHeaderLabel}
-                  colorOverrides={colorOverrides}
-                  textStyles={textStyles}
-                  ref={canvasRefs[pageIdx]}
-                  pageNumber={pageIdx + 1}
-                  totalPages={totalPages}
-                />
-              ) : null
-            )}
+          <div style={{ position: "fixed", top: 0, left: "-200vw", width: 1, height: 1, overflow: "hidden", pointerEvents: "none" }} aria-hidden>
+            {pages.map((pageItems, pageIdx) => (
+              <CardCanvas
+                key={`capture-${pageIdx}`}
+                shop={shop}
+                dayLabel={dayLabel}
+                dayNumber={dayNumber}
+                theme={theme}
+                items={pageItems}
+                specialNote={pageIdx === pages.length - 1 ? specialNote : ""}
+                showGradient={showGradient}
+                usePremiumBackground={usePremiumBackground}
+                font={font}
+                itemsHeaderLabel={itemsHeaderLabel}
+                priceHeaderLabel={priceHeaderLabel}
+                colorOverrides={colorOverrides}
+                textStyles={textStyles}
+                ref={captureRefs[pageIdx]}
+              />
+            ))}
           </div>
 
           <div className="flex flex-wrap gap-2 justify-center">
@@ -251,8 +380,7 @@ const Index: React.FC = () => {
             <button
               disabled={isProcessing}
               onClick={() => runShare(() => shareToWhatsApp(getCanvasElements(), shareText), "Shared to WhatsApp!")}
-              className="glass-panel px-3 py-2.5 flex items-center gap-2 text-sm font-medium hover:bg-secondary/80 transition-colors disabled:opacity-50"
-              style={{ color: "#25D366" }}
+              className="glass-panel px-3 py-2.5 flex items-center gap-2 text-sm font-medium text-foreground hover:bg-secondary/80 transition-colors disabled:opacity-50"
             >
               <MessageCircle size={16} /> WhatsApp
             </button>
@@ -260,8 +388,7 @@ const Index: React.FC = () => {
             <button
               disabled={isProcessing}
               onClick={() => runShare(() => shareToInstagram(getCanvasElements()), "Image ready for Instagram!")}
-              className="glass-panel px-3 py-2.5 flex items-center gap-2 text-sm font-medium hover:bg-secondary/80 transition-colors disabled:opacity-50"
-              style={{ color: "#E1306C" }}
+              className="glass-panel px-3 py-2.5 flex items-center gap-2 text-sm font-medium text-foreground hover:bg-secondary/80 transition-colors disabled:opacity-50"
             >
               <Share2 size={16} /> Instagram
             </button>
@@ -269,8 +396,7 @@ const Index: React.FC = () => {
             <button
               disabled={isProcessing}
               onClick={() => runShare(() => shareToFacebook(getCanvasElements()), "Image ready for Facebook!")}
-              className="glass-panel px-3 py-2.5 flex items-center gap-2 text-sm font-medium hover:bg-secondary/80 transition-colors disabled:opacity-50"
-              style={{ color: "#1877F2" }}
+              className="glass-panel px-3 py-2.5 flex items-center gap-2 text-sm font-medium text-foreground hover:bg-secondary/80 transition-colors disabled:opacity-50"
             >
               <Share2 size={16} /> Facebook
             </button>
@@ -278,8 +404,7 @@ const Index: React.FC = () => {
             <button
               disabled={isProcessing}
               onClick={() => runShare(() => shareToTwitter(getCanvasElements(), shareText), "Image ready for Twitter/X!")}
-              className="glass-panel px-3 py-2.5 flex items-center gap-2 text-sm font-medium hover:bg-secondary/80 transition-colors disabled:opacity-50"
-              style={{ color: "#1DA1F2" }}
+              className="glass-panel px-3 py-2.5 flex items-center gap-2 text-sm font-medium text-foreground hover:bg-secondary/80 transition-colors disabled:opacity-50"
             >
               <Twitter size={16} /> X
             </button>
@@ -287,8 +412,7 @@ const Index: React.FC = () => {
             <button
               disabled={isProcessing}
               onClick={() => runShare(() => shareToTelegram(getCanvasElements(), shareText), "Shared to Telegram!")}
-              className="glass-panel px-3 py-2.5 flex items-center gap-2 text-sm font-medium hover:bg-secondary/80 transition-colors disabled:opacity-50"
-              style={{ color: "#0088cc" }}
+              className="glass-panel px-3 py-2.5 flex items-center gap-2 text-sm font-medium text-foreground hover:bg-secondary/80 transition-colors disabled:opacity-50"
             >
               <Send size={16} /> Telegram
             </button>

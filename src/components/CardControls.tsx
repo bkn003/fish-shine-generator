@@ -1,12 +1,26 @@
 import React, { useState } from "react";
-import { PriceItem, TextStyleOverrides, TextStyle, Shop } from "@/lib/shop";
+import { PosterPreset, PriceItem, TextStyleOverrides, TextStyle, Shop } from "@/lib/shop";
 import { CardTheme, FONT_OPTIONS } from "@/lib/themes";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, RotateCcw, Bold, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  Plus,
+  Trash2,
+  RotateCcw,
+  Bold,
+  ChevronDown,
+  ChevronUp,
+  ArrowUp,
+  ArrowDown,
+  GripVertical,
+  Palette,
+  Save,
+  Sparkles,
+  LayoutTemplate,
+} from "lucide-react";
 
 interface ColorOverrides {
   accent?: string;
@@ -28,6 +42,8 @@ interface CardControlsProps {
   setSpecialNote: (s: string) => void;
   showGradient: boolean;
   setShowGradient: (b: boolean) => void;
+  usePremiumBackground: boolean;
+  setUsePremiumBackground: (b: boolean) => void;
   font: string;
   setFont: (s: string) => void;
   shop: Shop;
@@ -41,6 +57,11 @@ interface CardControlsProps {
   textStyles: TextStyleOverrides;
   setTextStyles: (s: TextStyleOverrides) => void;
   theme: CardTheme;
+  presets: PosterPreset[];
+  activePresetId: string;
+  onApplyPreset: (presetId: string) => void;
+  onSavePreset: (name: string) => void;
+  onDeletePreset: (presetId: string) => void;
 }
 
 const COLOR_FIELDS: { key: keyof ColorOverrides; label: string; themeKey: keyof CardTheme }[] = [
@@ -61,38 +82,103 @@ interface TextStyleField {
 
 const TEXT_STYLE_FIELDS: TextStyleField[] = [
   { key: "shopName", label: "Shop Name", defaultSize: 20, defaultBold: true },
-  { key: "shopNameTamil", label: "Shop Tamil", defaultSize: 13, defaultBold: false },
+  { key: "shopNameTamil", label: "Shop Tamil", defaultSize: 14, defaultBold: false },
   { key: "tagline", label: "Tagline", defaultSize: 11, defaultBold: false },
   { key: "dayBanner", label: "Day Banner", defaultSize: 16, defaultBold: true },
   { key: "deliveryNote", label: "Delivery Note", defaultSize: 11, defaultBold: false },
   { key: "itemName", label: "Item Name", defaultSize: 14, defaultBold: true },
-  { key: "itemNameTamil", label: "Item Tamil", defaultSize: 11, defaultBold: false },
+  { key: "itemNameTamil", label: "Item Tamil", defaultSize: 12, defaultBold: false },
   { key: "priceBadge", label: "Price Badge", defaultSize: 13, defaultBold: true },
   { key: "specialNote", label: "Special Note", defaultSize: 12, defaultBold: false },
 ];
 
 const CardControls: React.FC<CardControlsProps> = ({
-  dayNumber, setDayNumber, dayLabel, setDayLabel,
-  items, setItems, specialNote, setSpecialNote,
-  showGradient, setShowGradient, font, setFont,
-  shop, setShop, itemsHeaderLabel, setItemsHeaderLabel, priceHeaderLabel, setPriceHeaderLabel,
-  colorOverrides, setColorOverrides, textStyles, setTextStyles, theme,
+  dayNumber,
+  setDayNumber,
+  dayLabel,
+  setDayLabel,
+  items,
+  setItems,
+  specialNote,
+  setSpecialNote,
+  showGradient,
+  setShowGradient,
+  usePremiumBackground,
+  setUsePremiumBackground,
+  font,
+  setFont,
+  shop,
+  setShop,
+  itemsHeaderLabel,
+  setItemsHeaderLabel,
+  priceHeaderLabel,
+  setPriceHeaderLabel,
+  colorOverrides,
+  setColorOverrides,
+  textStyles,
+  setTextStyles,
+  theme,
+  presets,
+  activePresetId,
+  onApplyPreset,
+  onSavePreset,
+  onDeletePreset,
 }) => {
   const [showTextStyles, setShowTextStyles] = useState(false);
+  const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
-  const addItem = () => setItems([...items, { name: "", name_tamil: "", price: "" }]);
+  const addItem = () =>
+    setItems([
+      ...items,
+      {
+        id: typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`,
+        name: "",
+        name_tamil: "",
+        price: "",
+      },
+    ]);
+
   const removeItem = (i: number) => setItems(items.filter((_, idx) => idx !== i));
+
   const updateItem = (i: number, field: keyof PriceItem, val: string) => {
     const newItems = [...items];
     newItems[i] = { ...newItems[i], [field]: val };
     setItems(newItems);
   };
 
+  const updateItemStyle = (i: number, key: keyof NonNullable<PriceItem["style"]>, value: string) => {
+    const newItems = [...items];
+    newItems[i] = {
+      ...newItems[i],
+      style: {
+        ...newItems[i].style,
+        [key]: value,
+      },
+    };
+    setItems(newItems);
+  };
+
+  const clearItemStyle = (i: number) => {
+    const newItems = [...items];
+    delete newItems[i].style;
+    setItems(newItems);
+  };
+
+  const moveItem = (from: number, to: number) => {
+    if (to < 0 || to >= items.length || from === to) return;
+    const reordered = [...items];
+    const [moved] = reordered.splice(from, 1);
+    reordered.splice(to, 0, moved);
+    setItems(reordered);
+  };
+
   const updateShop = (field: keyof Shop, value: string) => {
     setShop((prev) => ({ ...prev, [field]: value }));
   };
 
-  const updateTextStyle = (key: keyof TextStyleOverrides, prop: keyof TextStyle, value: any) => {
+  const updateTextStyle = (key: keyof TextStyleOverrides, prop: keyof TextStyle, value: string | number | boolean) => {
     setTextStyles({
       ...textStyles,
       [key]: { ...textStyles[key], [prop]: value },
@@ -105,9 +191,58 @@ const CardControls: React.FC<CardControlsProps> = ({
     setTextStyles(newStyles);
   };
 
+  const openSavePreset = () => {
+    const name = window.prompt("Preset name");
+    if (!name || !name.trim()) return;
+    onSavePreset(name.trim());
+  };
+
   return (
     <div className="space-y-4">
-      {/* Quick content editor */}
+      <div className="glass-panel p-4 space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="text-sm font-semibold text-primary flex items-center gap-2">
+            <LayoutTemplate size={14} /> Business Presets
+          </h3>
+          <button
+            onClick={openSavePreset}
+            className="flex items-center gap-1 rounded-md border border-border bg-secondary px-2 py-1 text-xs text-foreground hover:bg-secondary/80"
+          >
+            <Save size={12} /> Save Current
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-2">
+          <Select
+            value={activePresetId || "__none"}
+            onValueChange={(value) => {
+              if (value !== "__none") onApplyPreset(value);
+            }}
+          >
+            <SelectTrigger className="bg-secondary border-border">
+              <SelectValue placeholder="Select saved preset" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none">Select saved preset</SelectItem>
+              {presets.map((preset) => (
+                <SelectItem key={preset.id} value={preset.id}>
+                  {preset.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <button
+            onClick={() => activePresetId && onDeletePreset(activePresetId)}
+            disabled={!activePresetId}
+            className="rounded-md border border-border bg-secondary px-3 py-2 text-xs text-destructive disabled:opacity-40"
+          >
+            Delete
+          </button>
+        </div>
+        <p className="text-[11px] text-muted-foreground">Save full poster styles and switch instantly for different customers/brands.</p>
+      </div>
+
       <div className="glass-panel p-4 space-y-3">
         <h3 className="text-sm font-semibold text-primary">Edit All Card Content</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
@@ -115,29 +250,30 @@ const CardControls: React.FC<CardControlsProps> = ({
           <Input value={shop.shop_name_tamil} onChange={(e) => updateShop("shop_name_tamil", e.target.value)} placeholder="Shop Name Tamil" className="bg-secondary border-border h-8 text-xs" />
           <Input value={shop.tagline} onChange={(e) => updateShop("tagline", e.target.value)} placeholder="Tagline" className="bg-secondary border-border h-8 text-xs" />
           <Input value={shop.phone} onChange={(e) => updateShop("phone", e.target.value)} placeholder="Phone" className="bg-secondary border-border h-8 text-xs" />
-          <Input value={shop.delivery_note} onChange={(e) => updateShop("delivery_note", e.target.value)} placeholder="Free delivery note" className="bg-secondary border-border h-8 text-xs" />
           <Input value={shop.address} onChange={(e) => updateShop("address", e.target.value)} placeholder="Address" className="bg-secondary border-border h-8 text-xs" />
+          <Input value={shop.delivery_note} onChange={(e) => updateShop("delivery_note", e.target.value)} placeholder="Free delivery note" className="bg-secondary border-border h-8 text-xs" />
           <Input value={itemsHeaderLabel} onChange={(e) => setItemsHeaderLabel(e.target.value)} placeholder="Items Column Header" className="bg-secondary border-border h-8 text-xs" />
           <Input value={priceHeaderLabel} onChange={(e) => setPriceHeaderLabel(e.target.value)} placeholder="Price Column Header" className="bg-secondary border-border h-8 text-xs" />
         </div>
       </div>
 
-      {/* Day config */}
       <div className="glass-panel p-4 space-y-3">
         <h3 className="text-sm font-semibold text-primary">Day Settings</h3>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <Label className="text-xs text-muted-foreground">Day Number (1-365)</Label>
+            <Label className="text-xs text-muted-foreground">Theme Day (1-365)</Label>
             <Input
-              type="number" min={1} max={365} value={dayNumber}
-              onChange={e => setDayNumber(Math.max(1, Math.min(365, parseInt(e.target.value) || 1)))}
+              type="number"
+              min={1}
+              max={365}
+              value={dayNumber}
+              onChange={(e) => setDayNumber(Math.max(1, Math.min(365, parseInt(e.target.value) || 1)))}
               className="bg-secondary border-border"
             />
           </div>
           <div>
-            <Label className="text-xs text-muted-foreground">Day Label</Label>
-            <Input value={dayLabel} onChange={e => setDayLabel(e.target.value)}
-              className="bg-secondary border-border" placeholder="Monday" />
+            <Label className="text-xs text-muted-foreground">Day Label (exact text)</Label>
+            <Input value={dayLabel} onChange={(e) => setDayLabel(e.target.value)} className="bg-secondary border-border" placeholder="Thursday (07/03/2026)" />
           </div>
         </div>
         <div className="text-xs text-muted-foreground">
@@ -145,7 +281,6 @@ const CardControls: React.FC<CardControlsProps> = ({
         </div>
       </div>
 
-      {/* Font & Gradient */}
       <div className="glass-panel p-4 space-y-3">
         <h3 className="text-sm font-semibold text-primary">Style</h3>
         <div>
@@ -155,8 +290,10 @@ const CardControls: React.FC<CardControlsProps> = ({
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="max-h-72">
-              {FONT_OPTIONS.map(f => (
-                <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
+              {FONT_OPTIONS.map((f) => (
+                <SelectItem key={f.value} value={f.value}>
+                  {f.label}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -165,9 +302,14 @@ const CardControls: React.FC<CardControlsProps> = ({
           <Label className="text-xs text-muted-foreground">Gradient Background</Label>
           <Switch checked={showGradient} onCheckedChange={setShowGradient} />
         </div>
+        <div className="flex items-center justify-between">
+          <Label className="text-xs text-muted-foreground flex items-center gap-1">
+            <Sparkles size={12} /> Premium AI fish art background (365 auto variants)
+          </Label>
+          <Switch checked={usePremiumBackground} onCheckedChange={setUsePremiumBackground} disabled={!showGradient} />
+        </div>
       </div>
 
-      {/* Colors */}
       <div className="glass-panel p-4 space-y-3">
         <h3 className="text-sm font-semibold text-primary">Colors</h3>
         <div className="grid grid-cols-2 gap-2">
@@ -176,16 +318,19 @@ const CardControls: React.FC<CardControlsProps> = ({
               <input
                 type="color"
                 value={colorOverrides[key] || (theme[themeKey] as string)}
-                onChange={e => setColorOverrides({ ...colorOverrides, [key]: e.target.value })}
+                onChange={(e) => setColorOverrides({ ...colorOverrides, [key]: e.target.value })}
                 className="w-7 h-7 rounded cursor-pointer border-0 bg-transparent"
               />
               <span className="text-xs text-muted-foreground flex-1">{label}</span>
               {colorOverrides[key] && (
-                <button onClick={() => {
-                  const o = { ...colorOverrides };
-                  delete o[key];
-                  setColorOverrides(o);
-                }} className="text-muted-foreground hover:text-foreground">
+                <button
+                  onClick={() => {
+                    const o = { ...colorOverrides };
+                    delete o[key];
+                    setColorOverrides(o);
+                  }}
+                  className="text-muted-foreground hover:text-foreground"
+                >
                   <RotateCcw size={12} />
                 </button>
               )}
@@ -194,12 +339,8 @@ const CardControls: React.FC<CardControlsProps> = ({
         </div>
       </div>
 
-      {/* Text Style Controls */}
       <div className="glass-panel p-4 space-y-3">
-        <button
-          onClick={() => setShowTextStyles(!showTextStyles)}
-          className="flex items-center justify-between w-full"
-        >
+        <button onClick={() => setShowTextStyles(!showTextStyles)} className="flex items-center justify-between w-full">
           <h3 className="text-sm font-semibold text-primary">Text Size & Style</h3>
           {showTextStyles ? <ChevronUp size={16} className="text-primary" /> : <ChevronDown size={16} className="text-primary" />}
         </button>
@@ -219,7 +360,7 @@ const CardControls: React.FC<CardControlsProps> = ({
                       <input
                         type="color"
                         value={currentColor}
-                        onChange={e => updateTextStyle(key, "color", e.target.value)}
+                        onChange={(e) => updateTextStyle(key, "color", e.target.value)}
                         className="w-5 h-5 rounded cursor-pointer border-0 bg-transparent"
                       />
                     ) : (
@@ -243,14 +384,7 @@ const CardControls: React.FC<CardControlsProps> = ({
                       </button>
                     )}
                   </div>
-                  <Slider
-                    value={[currentSize]}
-                    onValueChange={([v]) => updateTextStyle(key, "fontSize", v)}
-                    min={8}
-                    max={32}
-                    step={1}
-                    className="w-full"
-                  />
+                  <Slider value={[currentSize]} onValueChange={([v]) => updateTextStyle(key, "fontSize", v)} min={8} max={32} step={1} className="w-full" />
                 </div>
               );
             })}
@@ -258,41 +392,140 @@ const CardControls: React.FC<CardControlsProps> = ({
         )}
       </div>
 
-      {/* Items */}
       <div className="glass-panel p-4 space-y-3">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-primary">Edit Each Item ({items.length})</h3>
+          <h3 className="text-sm font-semibold text-primary">Edit & Rearrange Items ({items.length})</h3>
           <button onClick={addItem} className="flex items-center gap-1 text-xs text-primary hover:text-primary/80">
             <Plus size={14} /> Add
           </button>
         </div>
-        <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
-          {items.map((item, i) => (
-            <div key={i} className="flex gap-2 items-start bg-secondary/50 rounded-lg p-2">
-              <div className="flex-1 space-y-1">
-                <Input placeholder="Fish name" value={item.name}
-                  onChange={e => updateItem(i, "name", e.target.value)}
-                  className="bg-secondary border-border h-8 text-xs" />
-                <Input placeholder="தமிழ் பெயர்" value={item.name_tamil}
-                  onChange={e => updateItem(i, "name_tamil", e.target.value)}
-                  className="bg-secondary border-border h-8 text-xs" />
+
+        <div className="space-y-2 max-h-[460px] overflow-y-auto pr-1">
+          {items.map((item, i) => {
+            const isExpanded = expandedItemId === item.id;
+            return (
+              <div
+                key={item.id || i}
+                draggable
+                onDragStart={() => setDragIndex(i)}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setDragOverIndex(i);
+                }}
+                onDrop={() => {
+                  if (dragIndex !== null) moveItem(dragIndex, i);
+                  setDragIndex(null);
+                  setDragOverIndex(null);
+                }}
+                onDragEnd={() => {
+                  setDragIndex(null);
+                  setDragOverIndex(null);
+                }}
+                className={`rounded-lg p-2 border ${dragOverIndex === i ? "border-primary" : "border-border"} bg-secondary/50 space-y-2`}
+              >
+                <div className="flex items-start gap-2">
+                  <button className="text-muted-foreground mt-1 cursor-grab active:cursor-grabbing" title="Drag to move">
+                    <GripVertical size={14} />
+                  </button>
+
+                  <div className="flex-1 space-y-1">
+                    <Input placeholder="Fish name" value={item.name} onChange={(e) => updateItem(i, "name", e.target.value)} className="bg-secondary border-border h-8 text-xs" />
+                    <Input placeholder="தமிழ் பெயர்" value={item.name_tamil} onChange={(e) => updateItem(i, "name_tamil", e.target.value)} className="bg-secondary border-border h-8 text-xs" />
+                  </div>
+
+                  <Input
+                    placeholder="₹"
+                    value={item.price}
+                    onChange={(e) => updateItem(i, "price", e.target.value)}
+                    className="bg-secondary border-border h-8 text-xs w-20 text-center"
+                  />
+
+                  <div className="flex flex-col gap-1">
+                    <button onClick={() => moveItem(i, i - 1)} disabled={i === 0} className="text-muted-foreground hover:text-foreground disabled:opacity-30">
+                      <ArrowUp size={14} />
+                    </button>
+                    <button onClick={() => moveItem(i, i + 1)} disabled={i === items.length - 1} className="text-muted-foreground hover:text-foreground disabled:opacity-30">
+                      <ArrowDown size={14} />
+                    </button>
+                  </div>
+
+                  <button
+                    onClick={() => setExpandedItemId(isExpanded ? null : item.id)}
+                    className={`mt-1 ${isExpanded ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                    title="Row style"
+                  >
+                    <Palette size={14} />
+                  </button>
+
+                  <button onClick={() => removeItem(i)} className="text-destructive hover:text-destructive/80 mt-1" title="Delete item">
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+
+                {isExpanded && (
+                  <div className="grid grid-cols-2 gap-2 border-t border-border pt-2">
+                    <label className="text-[10px] text-muted-foreground space-y-1">
+                      Row BG
+                      <input
+                        type="color"
+                        value={item.style?.rowBackground || "#1f2336"}
+                        onChange={(e) => updateItemStyle(i, "rowBackground", e.target.value)}
+                        className="block w-full h-8 rounded bg-transparent"
+                      />
+                    </label>
+                    <label className="text-[10px] text-muted-foreground space-y-1">
+                      Badge BG
+                      <input
+                        type="color"
+                        value={item.style?.badgeBackground || "#16c0f5"}
+                        onChange={(e) => updateItemStyle(i, "badgeBackground", e.target.value)}
+                        className="block w-full h-8 rounded bg-transparent"
+                      />
+                    </label>
+                    <label className="text-[10px] text-muted-foreground space-y-1">
+                      Name Color
+                      <input
+                        type="color"
+                        value={item.style?.nameColor || "#ffffff"}
+                        onChange={(e) => updateItemStyle(i, "nameColor", e.target.value)}
+                        className="block w-full h-8 rounded bg-transparent"
+                      />
+                    </label>
+                    <label className="text-[10px] text-muted-foreground space-y-1">
+                      Tamil Color
+                      <input
+                        type="color"
+                        value={item.style?.tamilColor || "#e0e0e0"}
+                        onChange={(e) => updateItemStyle(i, "tamilColor", e.target.value)}
+                        className="block w-full h-8 rounded bg-transparent"
+                      />
+                    </label>
+                    <label className="text-[10px] text-muted-foreground space-y-1 col-span-2">
+                      Price Text Color
+                      <input
+                        type="color"
+                        value={item.style?.priceColor || "#000000"}
+                        onChange={(e) => updateItemStyle(i, "priceColor", e.target.value)}
+                        className="block w-full h-8 rounded bg-transparent"
+                      />
+                    </label>
+                    <button
+                      onClick={() => clearItemStyle(i)}
+                      className="col-span-2 rounded-md border border-border bg-secondary px-2 py-1 text-[11px] text-muted-foreground hover:text-foreground"
+                    >
+                      Reset row style
+                    </button>
+                  </div>
+                )}
               </div>
-              <Input placeholder="₹" value={item.price}
-                onChange={e => updateItem(i, "price", e.target.value)}
-                className="bg-secondary border-border h-8 text-xs w-20 text-center" />
-              <button onClick={() => removeItem(i)} className="text-destructive hover:text-destructive/80 mt-1">
-                <Trash2 size={14} />
-              </button>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
-      {/* Special note */}
       <div className="glass-panel p-4 space-y-2">
         <Label className="text-xs text-muted-foreground">Special Note</Label>
-        <Input value={specialNote} onChange={e => setSpecialNote(e.target.value)}
-          className="bg-secondary border-border" placeholder="Today's special offer..." />
+        <Input value={specialNote} onChange={(e) => setSpecialNote(e.target.value)} className="bg-secondary border-border" placeholder="Today's special offer..." />
       </div>
     </div>
   );
