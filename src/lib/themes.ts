@@ -1,6 +1,7 @@
 export interface CardTheme {
   name: string;
   gradient: string;
+  premiumPattern: string;
   accentColor: string;
   glowColor: string;
   badgeColor: string;
@@ -20,7 +21,6 @@ const THEME_NAMES = [
   "Shadow", "Lemon"
 ];
 
-// Non-linear hue jumping for maximum visual difference between adjacent days
 function getDayHue(day: number): number {
   const goldenAngle = 137.508;
   return (day * goldenAngle + (day * day * 31) % 360) % 360;
@@ -28,17 +28,72 @@ function getDayHue(day: number): number {
 
 function hslToHex(h: number, s: number, l: number): string {
   l /= 100;
-  const a = s * Math.min(l, 1 - l) / 100;
+  const a = (s * Math.min(l, 1 - l)) / 100;
   const f = (n: number) => {
     const k = (n + h / 30) % 12;
     const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
-    return Math.round(255 * color).toString(16).padStart(2, '0');
+    return Math.round(255 * color)
+      .toString(16)
+      .padStart(2, "0");
   };
   return `#${f(0)}${f(8)}${f(4)}`;
 }
 
+function seededRandom(seed: number) {
+  let t = seed + 0x6d2b79f5;
+  return () => {
+    t += 0x6d2b79f5;
+    let v = Math.imul(t ^ (t >>> 15), 1 | t);
+    v ^= v + Math.imul(v ^ (v >>> 7), 61 | v);
+    return ((v ^ (v >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function buildPremiumFishPattern(day: number): string {
+  const rand = seededRandom(day * 7919 + 97);
+
+  const fish = Array.from({ length: 10 }, () => {
+    const x = Math.round(rand() * 500);
+    const y = Math.round(rand() * 720);
+    const size = 10 + rand() * 18;
+    const rot = Math.round(rand() * 360);
+    const hue = Math.round(rand() * 360);
+    const alpha = 0.08 + rand() * 0.14;
+
+    return `
+      <g transform="translate(${x} ${y}) rotate(${rot})">
+        <ellipse cx="0" cy="0" rx="${size}" ry="${(size * 0.56).toFixed(2)}" fill="hsla(${hue},85%,70%,${alpha.toFixed(3)})" />
+        <polygon points="${(-size).toFixed(2)},0 ${(-size - size * 0.58).toFixed(2)},${(size * 0.34).toFixed(2)} ${(-size - size * 0.58).toFixed(2)},${(-size * 0.34).toFixed(2)}" fill="hsla(${hue},85%,74%,${(alpha * 0.95).toFixed(3)})" />
+        <circle cx="${(size * 0.38).toFixed(2)}" cy="${(-size * 0.1).toFixed(2)}" r="${(size * 0.08).toFixed(2)}" fill="rgba(255,255,255,0.75)" />
+      </g>
+    `;
+  }).join("");
+
+  const bubbles = Array.from({ length: 18 }, () => {
+    const x = Math.round(rand() * 500);
+    const y = Math.round(rand() * 720);
+    const r = (1 + rand() * 4).toFixed(2);
+    return `<circle cx="${x}" cy="${y}" r="${r}" fill="rgba(255,255,255,0.12)" />`;
+  }).join("");
+
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="500" height="720" viewBox="0 0 500 720" preserveAspectRatio="none">
+    <defs>
+      <linearGradient id="wave${day}" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="rgba(255,255,255,0.20)" />
+        <stop offset="100%" stop-color="rgba(255,255,255,0.02)" />
+      </linearGradient>
+    </defs>
+    <path d="M0 160 C120 110, 260 210, 500 150 L500 240 C300 280, 140 190, 0 250 Z" fill="url(#wave${day})" opacity="0.26" />
+    <path d="M0 470 C180 420, 320 520, 500 450 L500 540 C320 580, 170 510, 0 570 Z" fill="url(#wave${day})" opacity="0.2" />
+    ${fish}
+    ${bubbles}
+  </svg>`;
+
+  return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
+}
+
 export function getThemeForDay(dayNumber: number): CardTheme {
-  const idx = ((dayNumber - 1) % 365);
+  const idx = (dayNumber - 1) % 365;
   const nameIdx = idx % THEME_NAMES.length;
   const name = THEME_NAMES[nameIdx] + (idx >= THEME_NAMES.length ? ` ${Math.floor(idx / THEME_NAMES.length) + 1}` : "");
 
@@ -59,6 +114,7 @@ export function getThemeForDay(dayNumber: number): CardTheme {
   return {
     name,
     gradient,
+    premiumPattern: buildPremiumFishPattern(dayNumber),
     accentColor: hslToHex(accentHue, 80, 60),
     glowColor: hslToHex(hue1, 70, 50),
     badgeColor: hslToHex(accentHue, 85, 55),
@@ -70,6 +126,7 @@ export function getThemeForDay(dayNumber: number): CardTheme {
 }
 
 export function getContrastColor(hex: string): string {
+  if (!/^#[\da-fA-F]{6}$/.test(hex)) return "#FFFFFF";
   const r = parseInt(hex.slice(1, 3), 16);
   const g = parseInt(hex.slice(3, 5), 16);
   const b = parseInt(hex.slice(5, 7), 16);

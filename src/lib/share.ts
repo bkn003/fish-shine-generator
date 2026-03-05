@@ -1,67 +1,115 @@
-// Temporarily make an element visible for capture (handles hidden/display:none)
-function prepareForCapture(el: HTMLElement): (() => void) {
-  const hiddenParent = el.closest('.hidden') as HTMLElement | null;
-  if (hiddenParent && hiddenParent !== el) {
-    const prev = hiddenParent.style.cssText;
-    hiddenParent.style.display = 'block';
-    hiddenParent.style.position = 'absolute';
-    hiddenParent.style.left = '-9999px';
-    hiddenParent.style.top = '0';
-    return () => { hiddenParent.style.cssText = prev; };
-  }
-  return () => {};
-}
+const CAPTURE_WIDTH = 500;
+const CAPTURE_HEIGHT = 720;
 
 async function ensureFontsReady() {
-  if ('fonts' in document) {
+  if ("fonts" in document) {
     try {
       await (document as Document & { fonts: FontFaceSet }).fonts.ready;
     } catch {
-      // ignore
+      // ignore font readiness failures
     }
   }
   await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
 }
 
-export async function downloadCard(canvas: HTMLElement, fileName: string) {
-  const restore = prepareForCapture(canvas);
+async function ensureImagesReady(el: HTMLElement) {
+  const images = Array.from(el.querySelectorAll("img"));
+  await Promise.all(
+    images.map(async (img) => {
+      try {
+        if (img.complete && img.naturalWidth > 0) return;
+        if (typeof img.decode === "function") {
+          await img.decode();
+          return;
+        }
+        await new Promise<void>((resolve) => {
+          img.onload = () => resolve();
+          img.onerror = () => resolve();
+        });
+      } catch {
+        // ignore per-image failures
+      }
+    }),
+  );
+}
+
+function stageElementForCapture(el: HTMLElement) {
+  const wrapper = document.createElement("div");
+  wrapper.style.position = "fixed";
+  wrapper.style.top = "0";
+  wrapper.style.left = "0";
+  wrapper.style.width = `${CAPTURE_WIDTH}px`;
+  wrapper.style.height = `${CAPTURE_HEIGHT}px`;
+  wrapper.style.overflow = "hidden";
+  wrapper.style.pointerEvents = "none";
+  wrapper.style.zIndex = "-1";
+
+  const clone = el.cloneNode(true) as HTMLElement;
+  clone.style.margin = "0";
+  clone.style.position = "relative";
+  clone.style.left = "0";
+  clone.style.top = "0";
+  clone.style.transform = "none";
+  clone.style.opacity = "1";
+  clone.style.visibility = "visible";
+
+  wrapper.appendChild(clone);
+  document.body.appendChild(wrapper);
+
+  return {
+    target: clone,
+    cleanup: () => wrapper.remove(),
+  };
+}
+
+async function renderCardCanvas(el: HTMLElement) {
   await ensureFontsReady();
-  const html2canvas = (await import("html2canvas")).default;
-  const c = await html2canvas(canvas, {
-    scale: 4,
-    useCORS: true,
-    backgroundColor: null,
-    width: 500,
-    height: 720,
-    foreignObjectRendering: true,
-    logging: false,
-  });
-  restore();
+  const staged = stageElementForCapture(el);
+
+  try {
+    await ensureImagesReady(staged.target);
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+
+    const html2canvas = (await import("html2canvas")).default;
+    return await html2canvas(staged.target, {
+      scale: 4,
+      useCORS: true,
+      backgroundColor: null,
+      width: CAPTURE_WIDTH,
+      height: CAPTURE_HEIGHT,
+      windowWidth: CAPTURE_WIDTH,
+      windowHeight: CAPTURE_HEIGHT,
+      foreignObjectRendering: false,
+      logging: false,
+      removeContainer: true,
+      imageTimeout: 0,
+    });
+  } finally {
+    staged.cleanup();
+  }
+}
+
+export async function downloadCard(canvas: HTMLElement, fileName: string) {
+  const rendered = await renderCardCanvas(canvas);
 
   const link = document.createElement("a");
   link.download = fileName;
-  link.href = c.toDataURL("image/png");
+  link.href = rendered.toDataURL("image/png");
   link.click();
-  return c;
+  return rendered;
 }
 
 export async function getCardBlob(canvas: HTMLElement): Promise<Blob> {
-  const restore = prepareForCapture(canvas);
-  await ensureFontsReady();
-  const html2canvas = (await import("html2canvas")).default;
-  const c = await html2canvas(canvas, {
-    scale: 4,
-    useCORS: true,
-    backgroundColor: null,
-    width: 500,
-    height: 720,
-    foreignObjectRendering: true,
-    logging: false,
-  });
-  restore();
+  const rendered = await renderCardCanvas(canvas);
 
-  return new Promise((resolve) => {
-    c.toBlob((blob) => resolve(blob!), "image/png");
+  return new Promise((resolve, reject) => {
+    rendered.toBlob((blob) => {
+      if (!blob) {
+        reject(new Error("Could not create image blob"));
+        return;
+      }
+      resolve(blob);
+    }, "image/png");
   });
 }
 
@@ -70,7 +118,7 @@ export async function downloadMultipleCards(canvases: HTMLElement[], baseFileNam
     const suffix = canvases.length > 1 ? `-page${i + 1}` : "";
     await downloadCard(canvases[i], `${baseFileName}${suffix}.png`);
     if (i < canvases.length - 1) {
-      await new Promise((r) => setTimeout(r, 450));
+      await new Promise((r) => setTimeout(r, 220));
     }
   }
 }

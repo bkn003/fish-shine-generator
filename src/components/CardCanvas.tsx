@@ -4,12 +4,13 @@ import { Shop, PriceItem, TextStyleOverrides } from "@/lib/shop";
 
 interface CardCanvasProps {
   shop: Shop;
-  dayNumber: number;
+  dayNumber?: number;
   dayLabel: string;
   theme: CardTheme;
   items: PriceItem[];
   specialNote: string;
   showGradient: boolean;
+  usePremiumBackground?: boolean;
   font: string;
   itemsHeaderLabel: string;
   priceHeaderLabel: string;
@@ -22,17 +23,23 @@ interface CardCanvasProps {
     dayBanner?: string;
   };
   textStyles: TextStyleOverrides;
-  pageNumber?: number;
-  totalPages?: number;
 }
 
 const clampSize = (size: number, min = 8, max = 32) => Math.max(min, Math.min(max, size));
 
 const CardCanvas = forwardRef<HTMLDivElement, CardCanvasProps>(({
-  shop, dayNumber, dayLabel, theme, items, specialNote,
-  showGradient, font, colorOverrides, textStyles,
-  itemsHeaderLabel, priceHeaderLabel,
-  pageNumber = 1, totalPages = 1,
+  shop,
+  dayLabel,
+  theme,
+  items,
+  specialNote,
+  showGradient,
+  usePremiumBackground = true,
+  font,
+  colorOverrides,
+  textStyles,
+  itemsHeaderLabel,
+  priceHeaderLabel,
 }, ref) => {
   const accent = colorOverrides.accent || theme.accentColor;
   const shopNameC = textStyles.shopName?.color || colorOverrides.shopName || theme.shopNameColor;
@@ -43,7 +50,11 @@ const CardCanvas = forwardRef<HTMLDivElement, CardCanvasProps>(({
   const badgeTextC = getContrastColor(badgeC);
   const bannerTextC = getContrastColor(bannerC);
 
-  const bg = showGradient ? theme.gradient : "#1a1a2e";
+  const backgroundImage = showGradient
+    ? usePremiumBackground
+      ? `${theme.premiumPattern}, ${theme.gradient}`
+      : theme.gradient
+    : "none";
 
   const ts = (key: keyof TextStyleOverrides, defaults: { size: number; bold: boolean }) => ({
     fontSize: clampSize(textStyles[key]?.fontSize || defaults.size),
@@ -56,12 +67,17 @@ const CardCanvas = forwardRef<HTMLDivElement, CardCanvasProps>(({
       style={{
         width: 500,
         height: 720,
-        background: bg,
         fontFamily: font,
         overflow: "hidden",
         position: "relative",
+        backgroundColor: showGradient ? "transparent" : "hsl(var(--card))",
+        backgroundImage,
+        backgroundSize: usePremiumBackground && showGradient ? "cover, cover" : "cover",
+        backgroundRepeat: "no-repeat, no-repeat",
+        backgroundBlendMode: usePremiumBackground && showGradient ? "screen, normal" : "normal",
       }}
       className="flex flex-col"
+      data-card-capture="true"
     >
       <div style={{
         position: "absolute", top: -50, right: -50,
@@ -76,10 +92,9 @@ const CardCanvas = forwardRef<HTMLDivElement, CardCanvasProps>(({
         pointerEvents: "none",
       }} />
 
-      {/* Header */}
-      <div style={{ height: 112, padding: "10px 16px", display: "flex", alignItems: "center", gap: 12 }}>
+      <div style={{ height: 124, padding: "10px 16px", display: "flex", alignItems: "center", gap: 12 }}>
         {shop.logo_url && (
-          <img src={shop.logo_url} alt="logo" style={{ width: 50, height: 50, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} />
+          <img src={shop.logo_url} alt="shop logo" style={{ width: 50, height: 50, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} />
         )}
         <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
           <div style={{
@@ -95,9 +110,9 @@ const CardCanvas = forwardRef<HTMLDivElement, CardCanvasProps>(({
           </div>
           {shop.shop_name_tamil && (
             <div style={{
-              ...ts("shopNameTamil", { size: 13, bold: false }),
+              ...ts("shopNameTamil", { size: 14, bold: false }),
               color: textStyles.shopNameTamil?.color || tamilTextC,
-              lineHeight: 1.35,
+              lineHeight: 1.4,
               overflow: "hidden",
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",
@@ -115,39 +130,57 @@ const CardCanvas = forwardRef<HTMLDivElement, CardCanvasProps>(({
             overflow: "hidden",
             textOverflow: "ellipsis",
             whiteSpace: "nowrap",
-          }}>{shop.tagline}</div>
+          }}>
+            {shop.tagline}
+          </div>
         </div>
-        {shop.phone && (
-          <div style={{ fontSize: 10, color: itemTextC, textAlign: "right", opacity: 0.85, flexShrink: 0, lineHeight: 1.35 }}>
-            📞 {shop.phone}
+
+        {(shop.phone || shop.address) && (
+          <div style={{
+            fontSize: 10,
+            color: itemTextC,
+            textAlign: "right",
+            opacity: 0.9,
+            flexShrink: 0,
+            lineHeight: 1.35,
+            maxWidth: 160,
+          }}>
+            {shop.phone && <div>📞 {shop.phone}</div>}
+            {shop.address && (
+              <div style={{ marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                📍 {shop.address}
+              </div>
+            )}
           </div>
         )}
       </div>
 
-      {/* Day Banner */}
       <div style={{
-        height: 40,
+        height: 42,
         background: bannerC,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
         gap: 8,
         flexShrink: 0,
+        padding: "0 12px",
       }}>
         <span style={{
           ...ts("dayBanner", { size: 16, bold: true }),
           color: bannerTextC,
-          letterSpacing: 0.5,
+          letterSpacing: 0.25,
           lineHeight: 1.25,
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
         }}>
-          📅 {dayLabel} — Day {dayNumber}{totalPages > 1 ? ` (${pageNumber}/${totalPages})` : ""}
+          {dayLabel}
         </span>
       </div>
 
-      {/* Delivery note */}
       {shop.delivery_note && (
         <div style={{
-          height: 28,
+          minHeight: 28,
           background: `${accent}22`,
           display: "flex",
           alignItems: "center",
@@ -156,13 +189,13 @@ const CardCanvas = forwardRef<HTMLDivElement, CardCanvasProps>(({
           ...ts("deliveryNote", { size: 11, bold: false }),
           color: textStyles.deliveryNote?.color || accent,
           lineHeight: 1.3,
-          paddingTop: 1,
+          padding: "2px 8px",
+          textAlign: "center",
         }}>
           🚚 {shop.delivery_note}
         </div>
       )}
 
-      {/* Items list */}
       <div style={{
         flex: 1,
         padding: "8px 12px",
@@ -175,7 +208,7 @@ const CardCanvas = forwardRef<HTMLDivElement, CardCanvasProps>(({
           display: "flex",
           alignItems: "center",
           padding: "4px 8px",
-          borderBottom: `1px solid ${accent}44`,
+          borderBottom: `1px solid ${accent}55`,
           marginBottom: 2,
           flexShrink: 0,
         }}>
@@ -202,68 +235,77 @@ const CardCanvas = forwardRef<HTMLDivElement, CardCanvasProps>(({
           </span>
         </div>
 
-        {items.map((item, i) => (
-          <div key={i} style={{
-            display: "flex",
-            alignItems: "center",
-            padding: "5px 8px",
-            background: i % 2 === 0 ? "rgba(255,255,255,0.04)" : "transparent",
-            borderRadius: 4,
-            minHeight: 42,
-            flexShrink: 0,
-          }}>
-            <div style={{ flex: 1, minWidth: 0, paddingRight: 8 }}>
-              <div style={{
-                ...ts("itemName", { size: 14, bold: true }),
-                color: itemTextC,
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-                lineHeight: 1.35,
-                paddingTop: 1,
-              }}>
-                {item.name}
-              </div>
-              {item.name_tamil && (
+        {items.map((item, i) => {
+          const itemRowBg = item.style?.rowBackground || (i % 2 === 0 ? "rgba(255,255,255,0.05)" : "transparent");
+          const itemBadgeBg = item.style?.badgeBackground || badgeC;
+          const itemBadgeText = item.style?.priceColor || getContrastColor(itemBadgeBg);
+
+          return (
+            <div
+              key={item.id || i}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                padding: "6px 8px",
+                background: itemRowBg,
+                borderRadius: 6,
+                minHeight: 46,
+                flexShrink: 0,
+              }}
+            >
+              <div style={{ flex: 1, minWidth: 0, paddingRight: 8 }}>
                 <div style={{
-                  ...ts("itemNameTamil", { size: 11, bold: false }),
-                  color: tamilTextC,
-                  opacity: 0.9,
+                  ...ts("itemName", { size: 14, bold: true }),
+                  color: item.style?.nameColor || itemTextC,
                   overflow: "hidden",
                   textOverflow: "ellipsis",
                   whiteSpace: "nowrap",
                   lineHeight: 1.35,
-                  marginTop: 1,
                   paddingTop: 1,
                 }}>
-                  {item.name_tamil}
+                  {item.name}
                 </div>
-              )}
-            </div>
+                {item.name_tamil && (
+                  <div style={{
+                    ...ts("itemNameTamil", { size: 12, bold: false }),
+                    color: item.style?.tamilColor || tamilTextC,
+                    opacity: 0.95,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                    lineHeight: 1.4,
+                    marginTop: 1,
+                    paddingTop: 1,
+                  }}>
+                    {item.name_tamil}
+                  </div>
+                )}
+              </div>
 
-            <div style={{ width: 110, display: "flex", justifyContent: "center", flexShrink: 0 }}>
-              <div style={{
-                background: badgeC,
-                color: badgeTextC,
-                padding: "4px 10px",
-                borderRadius: 20,
-                ...ts("priceBadge", { size: 13, bold: true }),
-                minWidth: 72,
-                textAlign: "center",
-                whiteSpace: "nowrap",
-                lineHeight: 1.2,
-              }}>
-                ₹{item.price}
+              <div style={{ width: 110, display: "flex", justifyContent: "center", alignItems: "center", flexShrink: 0 }}>
+                <div style={{
+                  background: itemBadgeBg,
+                  color: itemBadgeText,
+                  padding: "4px 10px",
+                  borderRadius: 20,
+                  ...ts("priceBadge", { size: 13, bold: true }),
+                  minWidth: 80,
+                  textAlign: "center",
+                  whiteSpace: "nowrap",
+                  lineHeight: 1.2,
+                }}>
+                  ₹{item.price}
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {specialNote && (
         <div style={{
-          height: 34,
-          padding: "0 16px",
+          minHeight: 34,
+          padding: "4px 16px",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
