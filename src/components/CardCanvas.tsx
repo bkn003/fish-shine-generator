@@ -333,9 +333,6 @@ const CardCanvas = forwardRef<HTMLDivElement, CardCanvasProps>(({
         <div style={{
           minHeight: 34,
           padding: "4px 16px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
           textAlign: "center",
           background: "rgba(0,0,0,0.25)",
           flexShrink: 0,
