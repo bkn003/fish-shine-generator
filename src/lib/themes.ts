@@ -21,6 +21,11 @@ const THEME_NAMES = [
   "Shadow", "Lemon"
 ];
 
+const normalizeDayNumber = (dayNumber: number) => {
+  const parsed = Number.isFinite(dayNumber) ? Math.floor(dayNumber) : 1;
+  return Math.max(1, parsed || 1);
+};
+
 function getDayHue(day: number): number {
   const goldenAngle = 137.508;
   return (day * goldenAngle + (day * day * 31) % 360) % 360;
@@ -92,10 +97,23 @@ function buildPremiumFishPattern(day: number): string {
   return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
 }
 
+export function getDefaultFishBackgroundPrompt(dayNumber: number, dayLabel: string): string {
+  const normalizedDay = normalizeDayNumber(dayNumber);
+  const label = dayLabel?.trim() || `Day ${normalizedDay}`;
+
+  return `Create a premium vertical fish-market poster background for ${label} (Day ${normalizedDay}).
+Use photorealistic fresh seafood and fish market textures underwater-inspired.
+IMPORTANT: no text, no numbers, no logos, no watermark, no people, no UI elements.
+Keep center and lower-middle areas clean and darker for price text readability.
+Rich cinematic lighting, high contrast, luxury commercial style, mobile poster ratio 500x720.`;
+}
+
 export function getThemeForDay(dayNumber: number): CardTheme {
-  const idx = (dayNumber - 1) % 365;
+  const normalizedDay = normalizeDayNumber(dayNumber);
+  const idx = normalizedDay - 1;
   const nameIdx = idx % THEME_NAMES.length;
-  const name = THEME_NAMES[nameIdx] + (idx >= THEME_NAMES.length ? ` ${Math.floor(idx / THEME_NAMES.length) + 1}` : "");
+  const nameCycle = Math.floor(idx / THEME_NAMES.length) + 1;
+  const name = nameCycle > 1 ? `${THEME_NAMES[nameIdx]} ${nameCycle}` : THEME_NAMES[nameIdx];
 
   const hue1 = getDayHue(idx);
   const hue2 = (hue1 + 40 + (idx * 17) % 80) % 360;
@@ -114,7 +132,7 @@ export function getThemeForDay(dayNumber: number): CardTheme {
   return {
     name,
     gradient,
-    premiumPattern: buildPremiumFishPattern(dayNumber),
+    premiumPattern: buildPremiumFishPattern(normalizedDay),
     accentColor: hslToHex(accentHue, 80, 60),
     glowColor: hslToHex(hue1, 70, 50),
     badgeColor: hslToHex(accentHue, 85, 55),
