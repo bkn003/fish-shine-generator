@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { PosterPreset, PriceItem, TextStyleOverrides, TextStyle, Shop } from "@/lib/shop";
 import { CardTheme, FONT_OPTIONS } from "@/lib/themes";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
@@ -20,6 +21,9 @@ import {
   Save,
   Sparkles,
   LayoutTemplate,
+  WandSparkles,
+  ImageOff,
+  Loader2,
 } from "lucide-react";
 
 interface ColorOverrides {
