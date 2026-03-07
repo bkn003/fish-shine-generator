@@ -319,10 +319,52 @@ const CardControls: React.FC<CardControlsProps> = ({
         </div>
         <div className="flex items-center justify-between">
           <Label className="text-xs text-muted-foreground flex items-center gap-1">
-            <Sparkles size={12} /> Premium AI fish art background (365 auto variants)
+            <Sparkles size={12} /> Premium fish-art pattern background (unlimited variants)
           </Label>
           <Switch checked={usePremiumBackground} onCheckedChange={setUsePremiumBackground} disabled={!showGradient} />
         </div>
+      </div>
+
+      <div className="glass-panel p-4 space-y-3">
+        <h3 className="text-sm font-semibold text-primary flex items-center gap-1">
+          <WandSparkles size={14} /> AI Background Generator (Unlimited)
+        </h3>
+        <Textarea
+          value={aiBackgroundPrompt}
+          onChange={(e) => setAiBackgroundPrompt(e.target.value)}
+          className="bg-secondary border-border min-h-[84px] text-xs"
+          placeholder="Optional custom prompt. Keep empty to auto-generate a premium fish background from day + label."
+        />
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => onGenerateAiBackground(false)}
+            disabled={isGeneratingAiBackground}
+            className="rounded-md border border-border bg-secondary px-3 py-2 text-xs text-foreground hover:bg-secondary/80 disabled:opacity-50 flex items-center gap-1"
+          >
+            {isGeneratingAiBackground ? <Loader2 size={12} className="animate-spin" /> : <WandSparkles size={12} />}
+            Generate
+          </button>
+          <button
+            type="button"
+            onClick={() => onGenerateAiBackground(true)}
+            disabled={isGeneratingAiBackground}
+            className="rounded-md border border-border bg-secondary px-3 py-2 text-xs text-foreground hover:bg-secondary/80 disabled:opacity-50"
+          >
+            Generate New Variation
+          </button>
+          <button
+            type="button"
+            onClick={onClearAiBackground}
+            disabled={!hasCustomBackground || isGeneratingAiBackground}
+            className="rounded-md border border-border bg-secondary px-3 py-2 text-xs text-muted-foreground hover:text-foreground disabled:opacity-40 flex items-center gap-1"
+          >
+            <ImageOff size={12} /> Clear AI Background
+          </button>
+        </div>
+        <p className="text-[11px] text-muted-foreground">
+          AI background keeps text area readable with premium fish visuals for any day number.
+        </p>
       </div>
 
       <div className="glass-panel p-4 space-y-3">
