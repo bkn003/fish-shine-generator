@@ -277,13 +277,12 @@ const CardControls: React.FC<CardControlsProps> = ({
         <h3 className="text-sm font-semibold text-primary">Day Settings</h3>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <Label className="text-xs text-muted-foreground">Theme Day (1-365)</Label>
+            <Label className="text-xs text-muted-foreground">Theme Day (unlimited)</Label>
             <Input
               type="number"
               min={1}
-              max={365}
               value={dayNumber}
-              onChange={(e) => setDayNumber(Math.max(1, Math.min(365, parseInt(e.target.value) || 1)))}
+              onChange={(e) => setDayNumber(Math.max(1, parseInt(e.target.value, 10) || 1))}
               className="bg-secondary border-border"
             />
           </div>
