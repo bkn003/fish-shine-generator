@@ -2,7 +2,7 @@ import React, { useState, useMemo, createRef, useEffect, useCallback } from "rea
 import AppNav from "@/components/AppNav";
 import CardCanvas from "@/components/CardCanvas";
 import CardControls from "@/components/CardControls";
-import { getThemeForDay, FONT_OPTIONS } from "@/lib/themes";
+import { getThemeForDay, FONT_OPTIONS, getDefaultFishBackgroundPrompt } from "@/lib/themes";
 import {
   PriceItem,
   TextStyleOverrides,
@@ -21,7 +21,7 @@ import { toast } from "sonner";
 import { useSearchParams } from "react-router-dom";
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-const MAX_ITEMS_PER_PAGE = 10;
+const MAX_ITEMS_PER_PAGE = 9;
 
 const createItemId = () => (typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
 
@@ -59,7 +59,7 @@ const Index: React.FC = () => {
   const [searchParams] = useSearchParams();
   const dayFromGallery = searchParams.get("day");
   const selectedDay = Number(dayFromGallery);
-  const initialDay = Number.isFinite(selectedDay) && selectedDay >= 1 && selectedDay <= 365 ? selectedDay : dayOfYear;
+  const initialDay = Number.isFinite(selectedDay) && selectedDay >= 1 ? selectedDay : dayOfYear;
 
   const [dayNumber, setDayNumber] = useState(initialDay);
   const [dayLabel, setDayLabel] = useState(DAYS[now.getDay()]);
@@ -93,6 +93,9 @@ const Index: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [presets, setPresets] = useState<PosterPreset[]>(() => getPosterPresets());
   const [activePresetId, setActivePresetId] = useState("");
+  const [aiBackgroundPrompt, setAiBackgroundPrompt] = useState("");
+  const [customBackgroundImage, setCustomBackgroundImage] = useState("");
+  const [isGeneratingAiBackground, setIsGeneratingAiBackground] = useState(false);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -115,7 +118,7 @@ const Index: React.FC = () => {
 
   useEffect(() => {
     const n = Number(dayFromGallery);
-    if (Number.isFinite(n) && n >= 1 && n <= 365) {
+    if (Number.isFinite(n) && n >= 1) {
       setDayNumber(n);
     }
   }, [dayFromGallery]);
@@ -160,6 +163,7 @@ const Index: React.FC = () => {
       shop,
       colorOverrides,
       textStyles,
+      aiBackgroundPrompt,
     }),
     [
       dayNumber,
@@ -174,6 +178,7 @@ const Index: React.FC = () => {
       shop,
       colorOverrides,
       textStyles,
+      aiBackgroundPrompt,
     ],
   );
 
@@ -190,6 +195,8 @@ const Index: React.FC = () => {
     setShop(data.shop || shop);
     setColorOverrides(data.colorOverrides || {});
     setTextStyles(data.textStyles || {});
+    setAiBackgroundPrompt(data.aiBackgroundPrompt || "");
+    setCustomBackgroundImage("");
     setActivePage(0);
   }, [shop]);
 
@@ -220,6 +227,53 @@ const Index: React.FC = () => {
     setPresets(getPosterPresets());
     if (activePresetId === presetId) setActivePresetId("");
     toast.success(`Preset "${preset?.name || "selected"}" deleted`);
+  };
+
+  const resolveAiPrompt = (isVariation = false) => {
+    const basePrompt = aiBackgroundPrompt.trim() || getDefaultFishBackgroundPrompt(dayNumber, dayLabel);
+    if (!isVariation) return basePrompt;
+
+    return `${basePrompt}\nCreate a different visual composition from the last one with new fish placement, new lighting, and new texture balance while keeping readability-safe center space.`;
+  };
+
+  const handleGenerateAiBackground = async (isVariation = false) => {
+    setIsGeneratingAiBackground(true);
+    const promptToUse = resolveAiPrompt(isVariation);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-fish-background", {
+        body: {
+          dayNumber,
+          dayLabel,
+          prompt: promptToUse,
+          variation: isVariation,
+        },
+      });
+
+      if (error) {
+        throw new Error(error.message || "Unable to generate background right now.");
+      }
+
+      if (!data?.imageUrl) {
+        throw new Error(data?.error || "No image returned from AI.");
+      }
+
+      setCustomBackgroundImage(data.imageUrl);
+      if (!aiBackgroundPrompt.trim()) {
+        setAiBackgroundPrompt(data.promptUsed || promptToUse);
+      }
+      toast.success("AI fish background generated.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "AI background generation failed. Please retry.";
+      toast.error(message);
+    } finally {
+      setIsGeneratingAiBackground(false);
+    }
+  };
+
+  const handleClearAiBackground = () => {
+    setCustomBackgroundImage("");
+    toast.success("AI background cleared.");
   };
 
   const handleDownload = async () => {
@@ -304,6 +358,12 @@ const Index: React.FC = () => {
             onApplyPreset={handleApplyPreset}
             onSavePreset={handleSavePreset}
             onDeletePreset={handleDeletePreset}
+            aiBackgroundPrompt={aiBackgroundPrompt}
+            setAiBackgroundPrompt={setAiBackgroundPrompt}
+            hasCustomBackground={Boolean(customBackgroundImage)}
+            isGeneratingAiBackground={isGeneratingAiBackground}
+            onGenerateAiBackground={handleGenerateAiBackground}
+            onClearAiBackground={handleClearAiBackground}
           />
         </div>
 
@@ -337,6 +397,7 @@ const Index: React.FC = () => {
               specialNote={activePage === pages.length - 1 ? specialNote : ""}
               showGradient={showGradient}
               usePremiumBackground={usePremiumBackground}
+              customBackgroundImage={customBackgroundImage}
               font={font}
               itemsHeaderLabel={itemsHeaderLabel}
               priceHeaderLabel={priceHeaderLabel}
@@ -345,25 +406,39 @@ const Index: React.FC = () => {
             />
           </div>
 
-          <div style={{ position: "fixed", top: 0, left: "-200vw", width: 1, height: 1, overflow: "hidden", pointerEvents: "none" }} aria-hidden>
+          <div
+            style={{
+              position: "fixed",
+              top: 0,
+              left: "-10000px",
+              width: CAPTURE_WIDTH,
+              pointerEvents: "none",
+              opacity: 1,
+              zIndex: -1,
+            }}
+            aria-hidden
+          >
             {pages.map((pageItems, pageIdx) => (
-              <CardCanvas
-                key={`capture-${pageIdx}`}
-                shop={shop}
-                dayLabel={dayLabel}
-                dayNumber={dayNumber}
-                theme={theme}
-                items={pageItems}
-                specialNote={pageIdx === pages.length - 1 ? specialNote : ""}
-                showGradient={showGradient}
-                usePremiumBackground={usePremiumBackground}
-                font={font}
-                itemsHeaderLabel={itemsHeaderLabel}
-                priceHeaderLabel={priceHeaderLabel}
-                colorOverrides={colorOverrides}
-                textStyles={textStyles}
-                ref={captureRefs[pageIdx]}
-              />
+              <div key={`capture-wrapper-${pageIdx}`} style={{ marginBottom: 8 }}>
+                <CardCanvas
+                  key={`capture-${pageIdx}`}
+                  shop={shop}
+                  dayLabel={dayLabel}
+                  dayNumber={dayNumber}
+                  theme={theme}
+                  items={pageItems}
+                  specialNote={pageIdx === pages.length - 1 ? specialNote : ""}
+                  showGradient={showGradient}
+                  usePremiumBackground={usePremiumBackground}
+                  customBackgroundImage={customBackgroundImage}
+                  font={font}
+                  itemsHeaderLabel={itemsHeaderLabel}
+                  priceHeaderLabel={priceHeaderLabel}
+                  colorOverrides={colorOverrides}
+                  textStyles={textStyles}
+                  ref={captureRefs[pageIdx]}
+                />
+              </div>
             ))}
           </div>
 
@@ -430,5 +505,7 @@ const Index: React.FC = () => {
     </div>
   );
 };
+
+const CAPTURE_WIDTH = 500;
 
 export default Index;

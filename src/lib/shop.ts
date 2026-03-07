@@ -78,6 +78,7 @@ export interface PosterPresetData {
     dayBanner?: string;
   };
   textStyles: TextStyleOverrides;
+  aiBackgroundPrompt?: string;
 }
 
 export interface PosterPreset {

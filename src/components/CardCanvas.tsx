@@ -11,6 +11,7 @@ interface CardCanvasProps {
   specialNote: string;
   showGradient: boolean;
   usePremiumBackground?: boolean;
+  customBackgroundImage?: string;
   font: string;
   itemsHeaderLabel: string;
   priceHeaderLabel: string;
@@ -35,6 +36,7 @@ const CardCanvas = forwardRef<HTMLDivElement, CardCanvasProps>(({
   specialNote,
   showGradient,
   usePremiumBackground = true,
+  customBackgroundImage,
   font,
   colorOverrides,
   textStyles,
@@ -50,10 +52,14 @@ const CardCanvas = forwardRef<HTMLDivElement, CardCanvasProps>(({
   const badgeTextC = getContrastColor(badgeC);
   const bannerTextC = getContrastColor(bannerC);
 
+  const safeCustomBackground = customBackgroundImage?.replace(/"/g, "%22");
+
   const backgroundImage = showGradient
-    ? usePremiumBackground
-      ? `${theme.premiumPattern}, ${theme.gradient}`
-      : theme.gradient
+    ? safeCustomBackground
+      ? `linear-gradient(180deg, rgba(6, 10, 18, 0.36), rgba(6, 10, 18, 0.58)), url("${safeCustomBackground}")`
+      : usePremiumBackground
+        ? `${theme.premiumPattern}, ${theme.gradient}`
+        : theme.gradient
     : "none";
 
   const ts = (key: keyof TextStyleOverrides, defaults: { size: number; bold: boolean }) => ({
@@ -72,27 +78,32 @@ const CardCanvas = forwardRef<HTMLDivElement, CardCanvasProps>(({
         position: "relative",
         backgroundColor: showGradient ? "transparent" : "hsl(var(--card))",
         backgroundImage,
-        backgroundSize: usePremiumBackground && showGradient ? "cover, cover" : "cover",
-        backgroundRepeat: "no-repeat, no-repeat",
-        backgroundBlendMode: usePremiumBackground && showGradient ? "screen, normal" : "normal",
+        backgroundSize: safeCustomBackground ? "cover, cover" : usePremiumBackground && showGradient ? "cover, cover" : "cover",
+        backgroundPosition: safeCustomBackground ? "center center, center center" : "center center, center center",
+        backgroundRepeat: safeCustomBackground ? "no-repeat, no-repeat" : "no-repeat, no-repeat",
+        backgroundBlendMode: safeCustomBackground ? "normal, normal" : usePremiumBackground && showGradient ? "screen, normal" : "normal",
       }}
       className="flex flex-col"
       data-card-capture="true"
     >
-      <div style={{
-        position: "absolute", top: -50, right: -50,
-        width: 200, height: 200, borderRadius: "50%",
-        background: `radial-gradient(circle, ${theme.glowColor}33, transparent)`,
-        pointerEvents: "none",
-      }} />
-      <div style={{
-        position: "absolute", bottom: -30, left: -30,
-        width: 150, height: 150, borderRadius: "50%",
-        background: `radial-gradient(circle, ${accent}22, transparent)`,
-        pointerEvents: "none",
-      }} />
+      {!safeCustomBackground && (
+        <>
+          <div style={{
+            position: "absolute", top: -50, right: -50,
+            width: 200, height: 200, borderRadius: "50%",
+            background: `radial-gradient(circle, ${theme.glowColor}33, transparent)`,
+            pointerEvents: "none",
+          }} />
+          <div style={{
+            position: "absolute", bottom: -30, left: -30,
+            width: 150, height: 150, borderRadius: "50%",
+            background: `radial-gradient(circle, ${accent}22, transparent)`,
+            pointerEvents: "none",
+          }} />
+        </>
+      )}
 
-      <div style={{ height: 124, padding: "10px 16px", display: "flex", alignItems: "center", gap: 12 }}>
+      <div style={{ height: 132, padding: "10px 16px", display: "flex", alignItems: "flex-start", gap: 12 }}>
         {shop.logo_url && (
           <img src={shop.logo_url} alt="shop logo" style={{ width: 50, height: 50, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} />
         )}
@@ -140,14 +151,30 @@ const CardCanvas = forwardRef<HTMLDivElement, CardCanvasProps>(({
             fontSize: 10,
             color: itemTextC,
             textAlign: "right",
-            opacity: 0.9,
+            opacity: 0.92,
             flexShrink: 0,
-            lineHeight: 1.35,
-            maxWidth: 160,
+            lineHeight: 1.28,
+            maxWidth: 170,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "flex-end",
+            gap: 2,
+            paddingTop: 2,
           }}>
-            {shop.phone && <div>📞 {shop.phone}</div>}
+            {shop.phone && <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>📞 {shop.phone}</div>}
             {shop.address && (
-              <div style={{ marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              <div
+                style={{
+                  whiteSpace: "normal",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  wordBreak: "break-word",
+                  display: "-webkit-box",
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: "vertical",
+                  maxWidth: "100%",
+                }}
+              >
                 📍 {shop.address}
               </div>
             )}
@@ -306,18 +333,17 @@ const CardCanvas = forwardRef<HTMLDivElement, CardCanvasProps>(({
         <div style={{
           minHeight: 34,
           padding: "4px 16px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
+          textAlign: "center",
           background: "rgba(0,0,0,0.25)",
           flexShrink: 0,
           ...ts("specialNote", { size: 12, bold: false }),
           color: textStyles.specialNote?.color || accent,
           fontStyle: "italic",
           overflow: "hidden",
-          textOverflow: "ellipsis",
-          whiteSpace: "nowrap",
-          lineHeight: 1.35,
+          lineHeight: 1.3,
+          display: "-webkit-box",
+          WebkitLineClamp: 2,
+          WebkitBoxOrient: "vertical",
         }}>
           ⭐ {specialNote}
         </div>
