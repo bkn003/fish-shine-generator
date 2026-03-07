@@ -66,6 +66,12 @@ interface CardControlsProps {
   onApplyPreset: (presetId: string) => void;
   onSavePreset: (name: string) => void;
   onDeletePreset: (presetId: string) => void;
+  aiBackgroundPrompt: string;
+  setAiBackgroundPrompt: (value: string) => void;
+  hasCustomBackground: boolean;
+  isGeneratingAiBackground: boolean;
+  onGenerateAiBackground: (isVariation?: boolean) => void;
+  onClearAiBackground: () => void;
 }
 
 const COLOR_FIELDS: { key: keyof ColorOverrides; label: string; themeKey: keyof CardTheme }[] = [
