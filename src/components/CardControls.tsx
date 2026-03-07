@@ -133,6 +133,12 @@ const CardControls: React.FC<CardControlsProps> = ({
   onApplyPreset,
   onSavePreset,
   onDeletePreset,
+  aiBackgroundPrompt,
+  setAiBackgroundPrompt,
+  hasCustomBackground,
+  isGeneratingAiBackground,
+  onGenerateAiBackground,
+  onClearAiBackground,
 }) => {
   const [showTextStyles, setShowTextStyles] = useState(false);
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
