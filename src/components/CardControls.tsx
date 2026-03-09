@@ -79,13 +79,13 @@ interface CardControlsProps {
   isGeneratingAiBackground: boolean;
   onGenerateAiBackground: (isVariation?: boolean, forceAutoPrompt?: boolean) => void;
   onClearAiBackground: () => void;
-  savedAiBackgrounds: SavedAiBackgroundOption[];
-  activeAiBackgroundId: string;
-  onApplySavedAiBackground: (backgroundId: string) => void;
-  onDeleteSavedAiBackground: (backgroundId: string) => void;
-  onRunBatchGeneration: (days: 7 | 30) => void;
-  isBatchGenerating: boolean;
-  batchProgressLabel: string;
+  savedAiBackgrounds?: SavedAiBackgroundOption[];
+  activeAiBackgroundId?: string;
+  onApplySavedAiBackground?: (backgroundId: string) => void;
+  onDeleteSavedAiBackground?: (backgroundId: string) => void;
+  onRunBatchGeneration?: (days: 7 | 30) => void;
+  isBatchGenerating?: boolean;
+  batchProgressLabel?: string;
 }
 
 const COLOR_FIELDS: { key: keyof ColorOverrides; label: string; themeKey: keyof CardTheme }[] = [
