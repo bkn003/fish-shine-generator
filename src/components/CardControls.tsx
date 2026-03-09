@@ -153,6 +153,13 @@ const CardControls: React.FC<CardControlsProps> = ({
   isGeneratingAiBackground,
   onGenerateAiBackground,
   onClearAiBackground,
+  savedAiBackgrounds = [],
+  activeAiBackgroundId = "",
+  onApplySavedAiBackground,
+  onDeleteSavedAiBackground,
+  onRunBatchGeneration,
+  isBatchGenerating = false,
+  batchProgressLabel = "",
 }) => {
   const [showTextStyles, setShowTextStyles] = useState(false);
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
