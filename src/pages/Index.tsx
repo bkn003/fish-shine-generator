@@ -243,10 +243,12 @@ const Index: React.FC = () => {
     try {
       const { data, error } = await supabase.functions.invoke("generate-fish-background", {
         body: {
+          mode: "generate",
           dayNumber,
           dayLabel,
           prompt: promptToUse,
           variation: isVariation,
+          save: Boolean(user),
         },
       });
 
