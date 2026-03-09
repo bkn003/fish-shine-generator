@@ -444,7 +444,7 @@ const Index: React.FC = () => {
             ))}
           </div>
 
-          <div className="flex flex-wrap gap-2 justify-center">
+          <div className="action-buttons flex flex-wrap gap-2 justify-center">
             <button
               onClick={handleDownload}
               disabled={isProcessing}
