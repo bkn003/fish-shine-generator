@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_backgrounds: {
+        Row: {
+          created_at: string
+          day_label: string
+          day_number: number
+          id: string
+          image_data: string
+          prompt: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          day_label?: string
+          day_number?: number
+          id?: string
+          image_data: string
+          prompt: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          day_label?: string
+          day_number?: number
+          id?: string
+          image_data?: string
+          prompt?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       price_cards: {
         Row: {
           accent_color: string | null
