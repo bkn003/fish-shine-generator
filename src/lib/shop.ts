@@ -113,6 +113,7 @@ export function getShop(): Shop {
     tagline: "Daily Fresh Catch",
     logo_url: "",
     phone: "",
+    whatsapp: "",
     address: "",
     delivery_note: "Free delivery above ₹500",
     owner_email: "",
