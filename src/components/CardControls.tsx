@@ -35,6 +35,13 @@ interface ColorOverrides {
   dayBanner?: string;
 }
 
+interface SavedAiBackgroundOption {
+  id: string;
+  dayNumber: number;
+  dayLabel: string;
+  createdAt: string;
+}
+
 interface CardControlsProps {
   dayNumber: number;
   setDayNumber: (n: number) => void;
@@ -70,8 +77,15 @@ interface CardControlsProps {
   setAiBackgroundPrompt: (value: string) => void;
   hasCustomBackground: boolean;
   isGeneratingAiBackground: boolean;
-  onGenerateAiBackground: (isVariation?: boolean) => void;
+  onGenerateAiBackground: (isVariation?: boolean, forceAutoPrompt?: boolean) => void;
   onClearAiBackground: () => void;
+  savedAiBackgrounds?: SavedAiBackgroundOption[];
+  activeAiBackgroundId?: string;
+  onApplySavedAiBackground?: (backgroundId: string) => void;
+  onDeleteSavedAiBackground?: (backgroundId: string) => void;
+  onRunBatchGeneration?: (days: 7 | 30) => void;
+  isBatchGenerating?: boolean;
+  batchProgressLabel?: string;
 }
 
 const COLOR_FIELDS: { key: keyof ColorOverrides; label: string; themeKey: keyof CardTheme }[] = [
@@ -139,6 +153,13 @@ const CardControls: React.FC<CardControlsProps> = ({
   isGeneratingAiBackground,
   onGenerateAiBackground,
   onClearAiBackground,
+  savedAiBackgrounds = [],
+  activeAiBackgroundId = "",
+  onApplySavedAiBackground,
+  onDeleteSavedAiBackground,
+  onRunBatchGeneration,
+  isBatchGenerating = false,
+  batchProgressLabel = "",
 }) => {
   const [showTextStyles, setShowTextStyles] = useState(false);
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);

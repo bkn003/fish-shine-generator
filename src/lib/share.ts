@@ -1,10 +1,13 @@
 const CAPTURE_WIDTH = 500;
 const CAPTURE_HEIGHT = 720;
+const SOCIAL_EXPORT_WIDTH = 1080;
+const EXPORT_BOTTOM_PADDING = 64;
 
 function getCaptureScale() {
   if (typeof window === "undefined") return 2;
+  const socialScale = SOCIAL_EXPORT_WIDTH / CAPTURE_WIDTH;
   const dpr = Math.min(window.devicePixelRatio || 1, 3);
-  return Math.max(2, Math.min(3, dpr * 1.5));
+  return Math.max(2, Math.min(2.6, Math.max(socialScale, dpr * 1.25)));
 }
 
 async function ensureFontsReady() {
@@ -49,20 +52,32 @@ function freezeAnimations(el: HTMLElement) {
   });
 }
 
+function resolveCaptureTarget(el: HTMLElement) {
+  if (el.matches("[data-card-capture='true']")) return el;
+  const nested = el.querySelector<HTMLElement>("[data-card-capture='true']");
+  return nested ?? el;
+}
+
 function stageElementForCapture(el: HTMLElement) {
   const wrapper = document.createElement("div");
   wrapper.style.position = "fixed";
   wrapper.style.top = "0";
   wrapper.style.left = "-10000px";
   wrapper.style.width = `${CAPTURE_WIDTH}px`;
-  wrapper.style.height = `${CAPTURE_HEIGHT}px`;
+  wrapper.style.height = `${CAPTURE_HEIGHT + EXPORT_BOTTOM_PADDING}px`;
   wrapper.style.overflow = "hidden";
   wrapper.style.pointerEvents = "none";
   wrapper.style.opacity = "1";
   wrapper.style.zIndex = "-1";
   wrapper.style.isolation = "isolate";
 
-  const clone = el.cloneNode(true) as HTMLElement;
+  const frame = document.createElement("div");
+  frame.style.position = "relative";
+  frame.style.width = `${CAPTURE_WIDTH}px`;
+  frame.style.height = `${CAPTURE_HEIGHT}px`;
+  frame.style.overflow = "hidden";
+
+  const clone = resolveCaptureTarget(el).cloneNode(true) as HTMLElement;
   clone.style.margin = "0";
   clone.style.position = "relative";
   clone.style.left = "0";
@@ -72,15 +87,16 @@ function stageElementForCapture(el: HTMLElement) {
   clone.style.transform = "none";
   clone.style.opacity = "1";
   clone.style.visibility = "visible";
-  clone.style.contain = "layout paint style";
 
   freezeAnimations(clone);
 
-  wrapper.appendChild(clone);
+  frame.appendChild(clone);
+  wrapper.appendChild(frame);
   document.body.appendChild(wrapper);
 
   return {
-    target: clone,
+    target: wrapper,
+    clone,
     cleanup: () => wrapper.remove(),
   };
 }
@@ -119,12 +135,35 @@ function isLikelyBlank(canvas: HTMLCanvasElement) {
   return nonBlankSamples === 0;
 }
 
+async function withActionButtonsHidden<T>(fn: () => Promise<T>): Promise<T> {
+  const targets = Array.from(document.querySelectorAll<HTMLElement>(".action-buttons"));
+  const prev = targets.map((node) => ({
+    node,
+    display: node.style.display,
+    visibility: node.style.visibility,
+  }));
+
+  targets.forEach((node) => {
+    node.style.visibility = "hidden";
+    node.style.display = "none";
+  });
+
+  try {
+    return await fn();
+  } finally {
+    prev.forEach(({ node, display, visibility }) => {
+      node.style.display = display;
+      node.style.visibility = visibility;
+    });
+  }
+}
+
 async function renderCardCanvas(el: HTMLElement) {
   await ensureFontsReady();
   const staged = stageElementForCapture(el);
 
   try {
-    await ensureImagesReady(staged.target);
+    await ensureImagesReady(staged.clone);
     await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
 
     const html2canvas = (await import("html2canvas")).default;
@@ -136,9 +175,9 @@ async function renderCardCanvas(el: HTMLElement) {
         useCORS: true,
         backgroundColor: null,
         width: CAPTURE_WIDTH,
-        height: CAPTURE_HEIGHT,
+        height: CAPTURE_HEIGHT + EXPORT_BOTTOM_PADDING,
         windowWidth: CAPTURE_WIDTH,
-        windowHeight: CAPTURE_HEIGHT,
+        windowHeight: CAPTURE_HEIGHT + EXPORT_BOTTOM_PADDING,
         foreignObjectRendering: false,
         logging: false,
         removeContainer: true,
@@ -150,7 +189,7 @@ async function renderCardCanvas(el: HTMLElement) {
 
     let rendered = await render(scale);
     if (isLikelyBlank(rendered)) {
-      await new Promise<void>((resolve) => setTimeout(resolve, 100));
+      await new Promise<void>((resolve) => setTimeout(resolve, 120));
       rendered = await render(2);
     }
 
@@ -173,17 +212,19 @@ async function canvasToBlob(rendered: HTMLCanvasElement): Promise<Blob> {
 }
 
 export async function downloadCard(canvas: HTMLElement, fileName: string) {
-  const rendered = await renderCardCanvas(canvas);
-  const blob = await canvasToBlob(rendered);
+  return await withActionButtonsHidden(async () => {
+    const rendered = await renderCardCanvas(canvas);
+    const blob = await canvasToBlob(rendered);
 
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.download = fileName;
-  link.href = url;
-  link.click();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.download = fileName;
+    link.href = url;
+    link.click();
 
-  setTimeout(() => URL.revokeObjectURL(url), 1200);
-  return rendered;
+    setTimeout(() => URL.revokeObjectURL(url), 1200);
+    return rendered;
+  });
 }
 
 export async function getCardBlob(canvas: HTMLElement): Promise<Blob> {
@@ -192,13 +233,23 @@ export async function getCardBlob(canvas: HTMLElement): Promise<Blob> {
 }
 
 export async function downloadMultipleCards(canvases: HTMLElement[], baseFileName: string) {
-  for (let i = 0; i < canvases.length; i++) {
-    const suffix = canvases.length > 1 ? `-page${i + 1}` : "";
-    await downloadCard(canvases[i], `${baseFileName}${suffix}.png`);
-    if (i < canvases.length - 1) {
-      await new Promise((r) => setTimeout(r, 350));
+  await withActionButtonsHidden(async () => {
+    for (let i = 0; i < canvases.length; i++) {
+      const suffix = canvases.length > 1 ? `-page${i + 1}` : "";
+      const rendered = await renderCardCanvas(canvases[i]);
+      const blob = await canvasToBlob(rendered);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.download = `${baseFileName}${suffix}.png`;
+      link.href = url;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1200);
+
+      if (i < canvases.length - 1) {
+        await new Promise((r) => setTimeout(r, 350));
+      }
     }
-  }
+  });
 }
 
 export async function getMultipleCardBlobs(canvases: HTMLElement[]): Promise<File[]> {
@@ -212,17 +263,23 @@ export async function getMultipleCardBlobs(canvases: HTMLElement[]): Promise<Fil
 }
 
 export async function shareToWhatsApp(canvases: HTMLElement[], text: string) {
-  if (navigator.share) {
-    try {
-      const files = await getMultipleCardBlobs(canvases);
-      await navigator.share({ text, files });
-      return;
-    } catch {
-      // continue fallback
+  await withActionButtonsHidden(async () => {
+    if (navigator.share) {
+      try {
+        const files = await getMultipleCardBlobs(canvases);
+        await navigator.share({
+          files,
+          title: "Today Fish Prices",
+          text: text || "Fresh Fish Market Today Price List",
+        });
+        return;
+      } catch {
+        // continue fallback
+      }
     }
-  }
-  await downloadMultipleCards(canvases, "fish-prices");
-  window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+    await downloadMultipleCards(canvases, "fish-prices");
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+  });
 }
 
 export async function shareToFacebook(canvases: HTMLElement[]) {
@@ -231,17 +288,19 @@ export async function shareToFacebook(canvases: HTMLElement[]) {
 }
 
 export async function shareToInstagram(canvases: HTMLElement[]) {
-  if (navigator.share) {
-    try {
-      const files = await getMultipleCardBlobs(canvases);
-      await navigator.share({ files });
-      return;
-    } catch {
-      // continue fallback
+  await withActionButtonsHidden(async () => {
+    if (navigator.share) {
+      try {
+        const files = await getMultipleCardBlobs(canvases);
+        await navigator.share({ files });
+        return;
+      } catch {
+        // continue fallback
+      }
     }
-  }
-  await downloadMultipleCards(canvases, "fish-prices");
-  window.open("https://www.instagram.com/", "_blank");
+    await downloadMultipleCards(canvases, "fish-prices");
+    window.open("https://www.instagram.com/", "_blank");
+  });
 }
 
 export async function shareToTwitter(canvases: HTMLElement[], text: string) {
@@ -250,28 +309,32 @@ export async function shareToTwitter(canvases: HTMLElement[], text: string) {
 }
 
 export async function shareToTelegram(canvases: HTMLElement[], text: string) {
-  if (navigator.share) {
-    try {
-      const files = await getMultipleCardBlobs(canvases);
-      await navigator.share({ text, files });
-      return;
-    } catch {
-      // continue fallback
+  await withActionButtonsHidden(async () => {
+    if (navigator.share) {
+      try {
+        const files = await getMultipleCardBlobs(canvases);
+        await navigator.share({ text, files });
+        return;
+      } catch {
+        // continue fallback
+      }
     }
-  }
-  await downloadMultipleCards(canvases, "fish-prices");
-  window.open(`https://t.me/share/url?text=${encodeURIComponent(text)}`, "_blank");
+    await downloadMultipleCards(canvases, "fish-prices");
+    window.open(`https://t.me/share/url?text=${encodeURIComponent(text)}`, "_blank");
+  });
 }
 
 export async function shareGeneric(canvases: HTMLElement[], text: string) {
-  if (navigator.share) {
-    try {
-      const files = await getMultipleCardBlobs(canvases);
-      await navigator.share({ text, files });
-      return;
-    } catch {
-      // continue fallback
+  await withActionButtonsHidden(async () => {
+    if (navigator.share) {
+      try {
+        const files = await getMultipleCardBlobs(canvases);
+        await navigator.share({ text, files });
+        return;
+      } catch {
+        // continue fallback
+      }
     }
-  }
-  await downloadMultipleCards(canvases, "fish-prices");
+    await downloadMultipleCards(canvases, "fish-prices");
+  });
 }

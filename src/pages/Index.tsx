@@ -243,10 +243,12 @@ const Index: React.FC = () => {
     try {
       const { data, error } = await supabase.functions.invoke("generate-fish-background", {
         body: {
+          mode: "generate",
           dayNumber,
           dayLabel,
           prompt: promptToUse,
           variation: isVariation,
+          save: Boolean(user),
         },
       });
 
@@ -387,7 +389,7 @@ const Index: React.FC = () => {
             </div>
           )}
 
-          <div className="glass-panel p-3 glow-border">
+          <div id="price-card" className="glass-panel p-3 glow-border">
             <CardCanvas
               shop={shop}
               dayLabel={dayLabel}
@@ -442,7 +444,7 @@ const Index: React.FC = () => {
             ))}
           </div>
 
-          <div className="flex flex-wrap gap-2 justify-center">
+          <div className="action-buttons flex flex-wrap gap-2 justify-center">
             <button
               onClick={handleDownload}
               disabled={isProcessing}

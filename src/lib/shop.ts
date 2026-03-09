@@ -4,6 +4,7 @@ export interface Shop {
   tagline: string;
   logo_url: string;
   phone: string;
+  whatsapp?: string;
   address: string;
   delivery_note: string;
   owner_email: string;
@@ -79,6 +80,8 @@ export interface PosterPresetData {
   };
   textStyles: TextStyleOverrides;
   aiBackgroundPrompt?: string;
+  aiBackgroundId?: string;
+  aiBackgroundImage?: string;
 }
 
 export interface PosterPreset {
@@ -110,6 +113,7 @@ export function getShop(): Shop {
     tagline: "Daily Fresh Catch",
     logo_url: "",
     phone: "",
+    whatsapp: "",
     address: "",
     delivery_note: "Free delivery above ₹500",
     owner_email: "",
