@@ -4,6 +4,7 @@ export interface Shop {
   tagline: string;
   logo_url: string;
   phone: string;
+  whatsapp?: string;
   address: string;
   delivery_note: string;
   owner_email: string;
@@ -79,6 +80,8 @@ export interface PosterPresetData {
   };
   textStyles: TextStyleOverrides;
   aiBackgroundPrompt?: string;
+  aiBackgroundId?: string;
+  aiBackgroundImage?: string;
 }
 
 export interface PosterPreset {
