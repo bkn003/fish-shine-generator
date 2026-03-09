@@ -389,7 +389,7 @@ const Index: React.FC = () => {
             </div>
           )}
 
-          <div className="glass-panel p-3 glow-border">
+          <div id="price-card" className="glass-panel p-3 glow-border">
             <CardCanvas
               shop={shop}
               dayLabel={dayLabel}
