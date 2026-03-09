@@ -28,6 +28,18 @@ interface CardCanvasProps {
 
 const clampSize = (size: number, min = 8, max = 32) => Math.max(min, Math.min(max, size));
 
+const subtleFishSvg = encodeURIComponent(`
+<svg xmlns="http://www.w3.org/2000/svg" width="220" height="220" viewBox="0 0 220 220" fill="none">
+  <g opacity="1">
+    <ellipse cx="62" cy="60" rx="22" ry="11" fill="white"/>
+    <polygon points="40,60 24,70 24,50" fill="white"/>
+    <ellipse cx="155" cy="125" rx="24" ry="12" fill="white"/>
+    <polygon points="130,125 112,136 112,114" fill="white"/>
+    <ellipse cx="92" cy="182" rx="18" ry="9" fill="white"/>
+    <polygon points="73,182 60,190 60,174" fill="white"/>
+  </g>
+</svg>`);
+
 const CardCanvas = forwardRef<HTMLDivElement, CardCanvasProps>(({
   shop,
   dayLabel,
@@ -76,6 +88,8 @@ const CardCanvas = forwardRef<HTMLDivElement, CardCanvasProps>(({
         fontFamily: font,
         overflow: "hidden",
         position: "relative",
+        borderRadius: 16,
+        boxShadow: "0 10px 30px hsl(var(--background) / 0.45)",
         backgroundColor: showGradient ? "transparent" : "hsl(var(--card))",
         backgroundImage,
         backgroundSize: safeCustomBackground ? "cover, cover" : usePremiumBackground && showGradient ? "cover, cover" : "cover",
@@ -86,6 +100,19 @@ const CardCanvas = forwardRef<HTMLDivElement, CardCanvasProps>(({
       className="flex flex-col"
       data-card-capture="true"
     >
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          backgroundImage: `url("data:image/svg+xml,${subtleFishSvg}")`,
+          backgroundSize: "220px 220px",
+          backgroundRepeat: "repeat",
+          opacity: 0.08,
+          pointerEvents: "none",
+          zIndex: 1,
+        }}
+      />
+
       {!safeCustomBackground && (
         <>
           <div style={{
@@ -93,17 +120,19 @@ const CardCanvas = forwardRef<HTMLDivElement, CardCanvasProps>(({
             width: 200, height: 200, borderRadius: "50%",
             background: `radial-gradient(circle, ${theme.glowColor}33, transparent)`,
             pointerEvents: "none",
+            zIndex: 1,
           }} />
           <div style={{
             position: "absolute", bottom: -30, left: -30,
             width: 150, height: 150, borderRadius: "50%",
             background: `radial-gradient(circle, ${accent}22, transparent)`,
             pointerEvents: "none",
+            zIndex: 1,
           }} />
         </>
       )}
 
-      <div style={{ height: 132, padding: "10px 16px", display: "flex", alignItems: "flex-start", gap: 12 }}>
+      <div style={{ height: 138, padding: "10px 16px", display: "flex", alignItems: "flex-start", gap: 12, position: "relative", zIndex: 2 }}>
         {shop.logo_url && (
           <img src={shop.logo_url} alt="shop logo" style={{ width: 50, height: 50, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} />
         )}
@@ -116,6 +145,8 @@ const CardCanvas = forwardRef<HTMLDivElement, CardCanvasProps>(({
             textOverflow: "ellipsis",
             whiteSpace: "nowrap",
             paddingTop: 1,
+            position: "relative",
+            zIndex: 2,
           }}>
             {shop.shop_name}
           </div>
@@ -129,6 +160,8 @@ const CardCanvas = forwardRef<HTMLDivElement, CardCanvasProps>(({
               whiteSpace: "nowrap",
               marginTop: 2,
               paddingTop: 1,
+              position: "relative",
+              zIndex: 2,
             }}>
               {shop.shop_name_tamil}
             </div>
@@ -141,27 +174,32 @@ const CardCanvas = forwardRef<HTMLDivElement, CardCanvasProps>(({
             overflow: "hidden",
             textOverflow: "ellipsis",
             whiteSpace: "nowrap",
+            position: "relative",
+            zIndex: 2,
           }}>
             {shop.tagline}
           </div>
         </div>
 
-        {(shop.phone || shop.address) && (
+        {(shop.phone || shop.whatsapp || shop.address) && (
           <div style={{
             fontSize: 10,
             color: itemTextC,
             textAlign: "right",
-            opacity: 0.92,
+            opacity: 0.95,
             flexShrink: 0,
-            lineHeight: 1.28,
-            maxWidth: 170,
+            lineHeight: 1.3,
+            maxWidth: 174,
             display: "flex",
             flexDirection: "column",
             alignItems: "flex-end",
             gap: 2,
             paddingTop: 2,
+            position: "relative",
+            zIndex: 2,
           }}>
             {shop.phone && <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>📞 {shop.phone}</div>}
+            {shop.whatsapp && <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>💬 {shop.whatsapp}</div>}
             {shop.address && (
               <div
                 style={{
@@ -191,6 +229,8 @@ const CardCanvas = forwardRef<HTMLDivElement, CardCanvasProps>(({
         gap: 8,
         flexShrink: 0,
         padding: "0 12px",
+        position: "relative",
+        zIndex: 2,
       }}>
         <span style={{
           ...ts("dayBanner", { size: 16, bold: true }),
@@ -200,6 +240,8 @@ const CardCanvas = forwardRef<HTMLDivElement, CardCanvasProps>(({
           overflow: "hidden",
           textOverflow: "ellipsis",
           whiteSpace: "nowrap",
+          position: "relative",
+          zIndex: 2,
         }}>
           {dayLabel}
         </span>
@@ -218,6 +260,8 @@ const CardCanvas = forwardRef<HTMLDivElement, CardCanvasProps>(({
           lineHeight: 1.3,
           padding: "2px 8px",
           textAlign: "center",
+          position: "relative",
+          zIndex: 2,
         }}>
           🚚 {shop.delivery_note}
         </div>
@@ -225,11 +269,13 @@ const CardCanvas = forwardRef<HTMLDivElement, CardCanvasProps>(({
 
       <div style={{
         flex: 1,
-        padding: "8px 12px",
+        padding: "10px 12px 12px",
         overflow: "hidden",
         display: "flex",
         flexDirection: "column",
-        gap: 2,
+        gap: 4,
+        position: "relative",
+        zIndex: 2,
       }}>
         <div style={{
           display: "flex",
@@ -246,26 +292,30 @@ const CardCanvas = forwardRef<HTMLDivElement, CardCanvasProps>(({
             color: accent,
             textTransform: "uppercase",
             letterSpacing: 1,
+            position: "relative",
+            zIndex: 2,
           }}>
             {itemsHeaderLabel}
           </span>
           <span style={{
-            width: 110,
+            width: 112,
             fontSize: 11,
             fontWeight: 700,
             color: accent,
             textTransform: "uppercase",
             letterSpacing: 1,
             textAlign: "center",
+            position: "relative",
+            zIndex: 2,
           }}>
             {priceHeaderLabel}
           </span>
         </div>
 
         {items.map((item, i) => {
-          const itemRowBg = item.style?.rowBackground || (i % 2 === 0 ? "rgba(255,255,255,0.05)" : "transparent");
+          const itemRowBg = item.style?.rowBackground || (i % 2 === 0 ? "rgba(255,255,255,0.06)" : "transparent");
           const itemBadgeBg = item.style?.badgeBackground || badgeC;
-          const itemBadgeText = item.style?.priceColor || getContrastColor(itemBadgeBg);
+          const itemBadgeText = item.style?.priceColor || badgeTextC;
 
           return (
             <div
@@ -273,11 +323,13 @@ const CardCanvas = forwardRef<HTMLDivElement, CardCanvasProps>(({
               style={{
                 display: "flex",
                 alignItems: "center",
-                padding: "6px 8px",
+                padding: "8px 10px",
                 background: itemRowBg,
-                borderRadius: 6,
-                minHeight: 46,
+                borderRadius: 10,
+                minHeight: 48,
                 flexShrink: 0,
+                position: "relative",
+                zIndex: 2,
               }}
             >
               <div style={{ flex: 1, minWidth: 0, paddingRight: 8 }}>
@@ -289,6 +341,8 @@ const CardCanvas = forwardRef<HTMLDivElement, CardCanvasProps>(({
                   whiteSpace: "nowrap",
                   lineHeight: 1.35,
                   paddingTop: 1,
+                  position: "relative",
+                  zIndex: 2,
                 }}>
                   {item.name}
                 </div>
@@ -303,23 +357,26 @@ const CardCanvas = forwardRef<HTMLDivElement, CardCanvasProps>(({
                     lineHeight: 1.4,
                     marginTop: 1,
                     paddingTop: 1,
+                    position: "relative",
+                    zIndex: 2,
                   }}>
                     {item.name_tamil}
                   </div>
                 )}
               </div>
 
-              <div style={{ width: 110, display: "flex", justifyContent: "center", alignItems: "center", flexShrink: 0 }}>
+              <div style={{ width: 112, display: "flex", justifyContent: "center", alignItems: "center", flexShrink: 0 }}>
                 <div style={{
-                  background: itemBadgeBg,
+                  background: `linear-gradient(135deg, ${itemBadgeBg}, ${accent})`,
                   color: itemBadgeText,
-                  padding: "4px 10px",
-                  borderRadius: 20,
-                  ...ts("priceBadge", { size: 13, bold: true }),
-                  minWidth: 80,
+                  padding: "8px 18px",
+                  borderRadius: 30,
+                  ...ts("priceBadge", { size: 14, bold: true }),
+                  minWidth: 88,
                   textAlign: "center",
                   whiteSpace: "nowrap",
                   lineHeight: 1.2,
+                  boxShadow: "0 8px 18px hsl(var(--background) / 0.28)",
                 }}>
                   ₹{item.price}
                 </div>
@@ -331,10 +388,10 @@ const CardCanvas = forwardRef<HTMLDivElement, CardCanvasProps>(({
 
       {specialNote && (
         <div style={{
-          minHeight: 34,
-          padding: "4px 16px",
+          minHeight: 38,
+          padding: "7px 16px",
           textAlign: "center",
-          background: "rgba(0,0,0,0.25)",
+          background: "rgba(0,0,0,0.26)",
           flexShrink: 0,
           ...ts("specialNote", { size: 12, bold: false }),
           color: textStyles.specialNote?.color || accent,
@@ -344,6 +401,8 @@ const CardCanvas = forwardRef<HTMLDivElement, CardCanvasProps>(({
           display: "-webkit-box",
           WebkitLineClamp: 2,
           WebkitBoxOrient: "vertical",
+          position: "relative",
+          zIndex: 2,
         }}>
           ⭐ {specialNote}
         </div>
