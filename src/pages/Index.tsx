@@ -98,6 +98,22 @@ const Index: React.FC = () => {
   const [isGeneratingAiBackground, setIsGeneratingAiBackground] = useState(false);
   const { user } = useAuth();
 
+  // Saved AI Backgrounds library
+  interface SavedAiBackground {
+    id: string;
+    dayNumber: number;
+    dayLabel: string;
+    prompt: string;
+    imageData: string;
+    createdAt: string;
+  }
+  const [savedAiBackgrounds, setSavedAiBackgrounds] = useState<SavedAiBackground[]>([]);
+  const [activeAiBackgroundId, setActiveAiBackgroundId] = useState("");
+
+  // Batch generation
+  const [isBatchGenerating, setIsBatchGenerating] = useState(false);
+  const [batchProgressLabel, setBatchProgressLabel] = useState("");
+
   useEffect(() => {
     if (!user) return;
     supabase.from("shops").select("*").eq("user_id", user.id).maybeSingle().then(({ data }) => {
@@ -115,6 +131,25 @@ const Index: React.FC = () => {
       }
     });
   }, [user]);
+
+  // Load saved AI backgrounds when user is authenticated
+  const loadSavedBackgrounds = useCallback(async () => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-fish-background", {
+        body: { mode: "list" },
+      });
+      if (!error && data?.backgrounds) {
+        setSavedAiBackgrounds(data.backgrounds);
+      }
+    } catch {
+      // Silently fail – library is a convenience feature
+    }
+  }, [user]);
+
+  useEffect(() => {
+    loadSavedBackgrounds();
+  }, [loadSavedBackgrounds]);
 
   useEffect(() => {
     const n = Number(dayFromGallery);
@@ -264,6 +299,8 @@ const Index: React.FC = () => {
       if (!aiBackgroundPrompt.trim()) {
         setAiBackgroundPrompt(data.promptUsed || promptToUse);
       }
+      // Refresh the library after generating
+      loadSavedBackgrounds();
       toast.success("AI fish background generated.");
     } catch (error) {
       const message = error instanceof Error ? error.message : "AI background generation failed. Please retry.";
@@ -275,7 +312,75 @@ const Index: React.FC = () => {
 
   const handleClearAiBackground = () => {
     setCustomBackgroundImage("");
+    setActiveAiBackgroundId("");
     toast.success("AI background cleared.");
+  };
+
+  // Apply a saved AI background from the library
+  const handleApplySavedAiBackground = (backgroundId: string) => {
+    const bg = savedAiBackgrounds.find((b) => b.id === backgroundId);
+    if (!bg) return;
+    setCustomBackgroundImage(bg.imageData);
+    setActiveAiBackgroundId(backgroundId);
+    toast.success("Saved background applied.");
+  };
+
+  // Delete a saved AI background
+  const handleDeleteSavedAiBackground = async (backgroundId: string) => {
+    try {
+      const { error } = await supabase.functions.invoke("generate-fish-background", {
+        body: { mode: "delete", backgroundId },
+      });
+      if (error) throw error;
+      setSavedAiBackgrounds((prev) => prev.filter((b) => b.id !== backgroundId));
+      if (activeAiBackgroundId === backgroundId) {
+        setActiveAiBackgroundId("");
+      }
+      toast.success("Background deleted.");
+    } catch {
+      toast.error("Failed to delete background.");
+    }
+  };
+
+  // Batch generation – download cards for multiple days
+  const handleRunBatchGeneration = async (days: 7 | 30) => {
+    const elements = getCanvasElements();
+    if (elements.length === 0) return;
+
+    setIsBatchGenerating(true);
+    const startDay = dayNumber;
+
+    try {
+      for (let d = 0; d < days; d++) {
+        const currentDay = startDay + d;
+        setBatchProgressLabel(`Generating day ${d + 1} of ${days}...`);
+
+        // Update the day number (this updates the theme)
+        setDayNumber(currentDay);
+
+        // Give React time to re-render with new theme
+        await new Promise((r) => setTimeout(r, 400));
+
+        // Get the refreshed capture elements & download
+        const refreshedElements = captureRefs.map((r) => r.current).filter((el): el is HTMLDivElement => el !== null);
+        if (refreshedElements.length > 0) {
+          await downloadMultipleCards(refreshedElements, `fish-prices-day${currentDay}`);
+        }
+
+        // Small delay to avoid overwhelming the browser
+        if (d < days - 1) {
+          await new Promise((r) => setTimeout(r, 300));
+        }
+      }
+
+      toast.success(`${days} day${days > 1 ? "s" : ""} of cards downloaded!`);
+    } catch {
+      toast.error("Batch generation failed. Please try again.");
+    } finally {
+      setIsBatchGenerating(false);
+      setBatchProgressLabel("");
+      setDayNumber(startDay); // Restore original day
+    }
   };
 
   const handleDownload = async () => {
@@ -366,6 +471,18 @@ const Index: React.FC = () => {
             isGeneratingAiBackground={isGeneratingAiBackground}
             onGenerateAiBackground={handleGenerateAiBackground}
             onClearAiBackground={handleClearAiBackground}
+            savedAiBackgrounds={savedAiBackgrounds.map((b) => ({
+              id: b.id,
+              dayNumber: b.dayNumber,
+              dayLabel: b.dayLabel,
+              createdAt: b.createdAt,
+            }))}
+            activeAiBackgroundId={activeAiBackgroundId}
+            onApplySavedAiBackground={handleApplySavedAiBackground}
+            onDeleteSavedAiBackground={handleDeleteSavedAiBackground}
+            onRunBatchGeneration={handleRunBatchGeneration}
+            isBatchGenerating={isBatchGenerating}
+            batchProgressLabel={batchProgressLabel}
           />
         </div>
 

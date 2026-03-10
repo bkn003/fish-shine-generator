@@ -388,6 +388,104 @@ const CardControls: React.FC<CardControlsProps> = ({
         </p>
       </div>
 
+      {/* Saved AI Backgrounds Library */}
+      {savedAiBackgrounds.length > 0 && (
+        <div className="glass-panel p-4 space-y-3">
+          <h3 className="text-sm font-semibold text-primary flex items-center gap-1">
+            <Sparkles size={14} /> Saved Backgrounds ({savedAiBackgrounds.length})
+          </h3>
+          <div className="grid grid-cols-3 gap-2 max-h-[240px] overflow-y-auto pr-1">
+            {savedAiBackgrounds.map((bg) => (
+              <div
+                key={bg.id}
+                className={`relative group rounded-lg overflow-hidden border-2 cursor-pointer transition-all ${
+                  activeAiBackgroundId === bg.id
+                    ? "border-primary ring-2 ring-primary/30"
+                    : "border-border hover:border-primary/50"
+                }`}
+                onClick={() => onApplySavedAiBackground?.(bg.id)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") onApplySavedAiBackground?.(bg.id);
+                }}
+              >
+                <div
+                  className="w-full aspect-[500/720] bg-secondary"
+                  style={{
+                    backgroundImage: `linear-gradient(180deg, rgba(6,10,18,0.3), rgba(6,10,18,0.5))`,
+                    backgroundSize: "cover",
+                  }}
+                >
+                  <div className="absolute inset-0 flex flex-col items-center justify-center p-1">
+                    <span className="text-[9px] text-white/90 font-medium text-center truncate w-full">
+                      Day {bg.dayNumber}
+                    </span>
+                    {bg.dayLabel && (
+                      <span className="text-[8px] text-white/60 truncate w-full text-center">{bg.dayLabel}</span>
+                    )}
+                  </div>
+                </div>
+                {activeAiBackgroundId === bg.id && (
+                  <div className="absolute top-0.5 right-0.5 bg-primary text-primary-foreground rounded-full px-1 py-0.5 text-[7px] font-bold">
+                    ✓
+                  </div>
+                )}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDeleteSavedAiBackground?.(bg.id);
+                  }}
+                  className="absolute bottom-0.5 right-0.5 opacity-0 group-hover:opacity-100 transition-opacity bg-destructive text-destructive-foreground rounded-full p-0.5"
+                  title="Delete"
+                >
+                  <Trash2 size={10} />
+                </button>
+              </div>
+            ))}
+          </div>
+          <p className="text-[10px] text-muted-foreground">Click a background to apply it. Hover to delete.</p>
+        </div>
+      )}
+
+      {/* Batch Generation */}
+      {onRunBatchGeneration && (
+        <div className="glass-panel p-4 space-y-3">
+          <h3 className="text-sm font-semibold text-primary flex items-center gap-1">
+            <LayoutTemplate size={14} /> Batch Generation
+          </h3>
+          <p className="text-[11px] text-muted-foreground">
+            Download cards for multiple days at once. Uses current items/prices with different themes per day.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => onRunBatchGeneration(7)}
+              disabled={isBatchGenerating}
+              className="rounded-md border border-border bg-secondary px-3 py-2 text-xs text-foreground hover:bg-secondary/80 disabled:opacity-50 flex items-center gap-1"
+            >
+              {isBatchGenerating ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+              Generate 7 Days
+            </button>
+            <button
+              type="button"
+              onClick={() => onRunBatchGeneration(30)}
+              disabled={isBatchGenerating}
+              className="rounded-md border border-border bg-secondary px-3 py-2 text-xs text-foreground hover:bg-secondary/80 disabled:opacity-50 flex items-center gap-1"
+            >
+              {isBatchGenerating ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+              Generate 30 Days
+            </button>
+          </div>
+          {batchProgressLabel && (
+            <div className="flex items-center gap-2 text-xs text-primary">
+              <Loader2 size={14} className="animate-spin" />
+              {batchProgressLabel}
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="glass-panel p-4 space-y-3">
         <h3 className="text-sm font-semibold text-primary">Colors</h3>
         <div className="grid grid-cols-2 gap-2">

@@ -58,6 +58,41 @@ function resolveCaptureTarget(el: HTMLElement) {
   return nested ?? el;
 }
 
+/** Copy key computed styles inline so html2canvas doesn't lose CSS-variable-dependent values */
+function inlineComputedStyles(source: HTMLElement, target: HTMLElement) {
+  const sourceChildren = Array.from(source.querySelectorAll<HTMLElement>("*"));
+  const targetChildren = Array.from(target.querySelectorAll<HTMLElement>("*"));
+
+  const PROPS_TO_COPY: (keyof CSSStyleDeclaration)[] = [
+    "color", "backgroundColor", "backgroundImage", "background",
+    "borderColor", "borderTopColor", "borderRightColor", "borderBottomColor", "borderLeftColor",
+    "boxShadow", "textShadow", "opacity",
+    "display", "flexDirection", "justifyContent", "alignItems", "flexWrap", "flexGrow", "flexShrink",
+    "width", "height", "minWidth", "minHeight", "maxWidth", "maxHeight",
+    "padding", "margin",
+    "fontSize", "fontWeight", "fontFamily", "lineHeight", "letterSpacing", "textAlign", "textTransform",
+    "position", "top", "left", "right", "bottom",
+    "overflow", "borderRadius",
+  ] as (keyof CSSStyleDeclaration)[];
+
+  const copyProps = (src: HTMLElement, tgt: HTMLElement) => {
+    const computed = window.getComputedStyle(src);
+    for (const prop of PROPS_TO_COPY) {
+      const val = computed[prop];
+      if (val && typeof val === "string") {
+        (tgt.style as any)[prop] = val;
+      }
+    }
+  };
+
+  copyProps(source, target);
+
+  const len = Math.min(sourceChildren.length, targetChildren.length);
+  for (let i = 0; i < len; i++) {
+    copyProps(sourceChildren[i], targetChildren[i]);
+  }
+}
+
 function stageElementForCapture(el: HTMLElement) {
   const wrapper = document.createElement("div");
   wrapper.style.position = "fixed";
@@ -71,13 +106,27 @@ function stageElementForCapture(el: HTMLElement) {
   wrapper.style.zIndex = "-1";
   wrapper.style.isolation = "isolate";
 
+  // Propagate CSS custom properties from :root to the off-screen wrapper
+  const rootStyles = window.getComputedStyle(document.documentElement);
+  const cssVarsToCopy = [
+    "--background", "--foreground", "--card", "--card-foreground",
+    "--primary", "--primary-foreground", "--secondary", "--secondary-foreground",
+    "--muted", "--muted-foreground", "--accent", "--accent-foreground",
+    "--border", "--ring", "--radius",
+  ];
+  for (const v of cssVarsToCopy) {
+    const val = rootStyles.getPropertyValue(v).trim();
+    if (val) wrapper.style.setProperty(v, val);
+  }
+
   const frame = document.createElement("div");
   frame.style.position = "relative";
   frame.style.width = `${CAPTURE_WIDTH}px`;
   frame.style.height = `${CAPTURE_HEIGHT}px`;
   frame.style.overflow = "hidden";
 
-  const clone = resolveCaptureTarget(el).cloneNode(true) as HTMLElement;
+  const sourceEl = resolveCaptureTarget(el);
+  const clone = sourceEl.cloneNode(true) as HTMLElement;
   clone.style.margin = "0";
   clone.style.position = "relative";
   clone.style.left = "0";
@@ -90,9 +139,14 @@ function stageElementForCapture(el: HTMLElement) {
 
   freezeAnimations(clone);
 
+  // Inline computed styles to ensure html2canvas captures everything correctly
   frame.appendChild(clone);
   wrapper.appendChild(frame);
   document.body.appendChild(wrapper);
+
+  // Force a repaint before inlining styles so computed values are resolved
+  void wrapper.offsetHeight;
+  inlineComputedStyles(sourceEl, clone);
 
   return {
     target: wrapper,
@@ -262,8 +316,28 @@ export async function getMultipleCardBlobs(canvases: HTMLElement[]): Promise<Fil
   return files;
 }
 
+/** Try a deep link first; fall back to web URL if the app doesn't open within timeout. */
+function tryDeepLink(deepLink: string, webFallback: string, timeoutMs = 1500) {
+  const start = Date.now();
+  const hidden = () =>
+    typeof document !== "undefined" && (document.hidden || (document as any).webkitHidden);
+
+  // On mobile, setting location.href to a deep link opens the app if installed.
+  // If nothing happens within timeoutMs, fall back to the web URL.
+  window.location.href = deepLink;
+
+  setTimeout(() => {
+    // If the page is hidden, the deep link opened the app – nothing to do.
+    if (hidden()) return;
+    // If more time passed than expected (user was prompted by OS), skip fallback.
+    if (Date.now() - start > timeoutMs + 500) return;
+    window.open(webFallback, "_blank");
+  }, timeoutMs);
+}
+
 export async function shareToWhatsApp(canvases: HTMLElement[], text: string) {
   await withActionButtonsHidden(async () => {
+    // Use Web Share API if available (best mobile experience)
     if (navigator.share) {
       try {
         const files = await getMultipleCardBlobs(canvases);
@@ -277,14 +351,34 @@ export async function shareToWhatsApp(canvases: HTMLElement[], text: string) {
         // continue fallback
       }
     }
+
+    // Download the images, then try deep link → web fallback
     await downloadMultipleCards(canvases, "fish-prices");
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+    tryDeepLink(
+      `whatsapp://send?text=${encodeURIComponent(text)}`,
+      `https://wa.me/?text=${encodeURIComponent(text)}`
+    );
   });
 }
 
 export async function shareToFacebook(canvases: HTMLElement[]) {
-  await downloadMultipleCards(canvases, "fish-prices");
-  window.open("https://www.facebook.com/", "_blank");
+  await withActionButtonsHidden(async () => {
+    if (navigator.share) {
+      try {
+        const files = await getMultipleCardBlobs(canvases);
+        await navigator.share({ files });
+        return;
+      } catch {
+        // continue fallback
+      }
+    }
+
+    await downloadMultipleCards(canvases, "fish-prices");
+    tryDeepLink(
+      "fb://publish",
+      "https://www.facebook.com/"
+    );
+  });
 }
 
 export async function shareToInstagram(canvases: HTMLElement[]) {
@@ -298,14 +392,33 @@ export async function shareToInstagram(canvases: HTMLElement[]) {
         // continue fallback
       }
     }
+
     await downloadMultipleCards(canvases, "fish-prices");
-    window.open("https://www.instagram.com/", "_blank");
+    tryDeepLink(
+      "instagram://camera",
+      "https://www.instagram.com/"
+    );
   });
 }
 
 export async function shareToTwitter(canvases: HTMLElement[], text: string) {
-  await downloadMultipleCards(canvases, "fish-prices");
-  window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, "_blank");
+  await withActionButtonsHidden(async () => {
+    if (navigator.share) {
+      try {
+        const files = await getMultipleCardBlobs(canvases);
+        await navigator.share({ text, files });
+        return;
+      } catch {
+        // continue fallback
+      }
+    }
+
+    await downloadMultipleCards(canvases, "fish-prices");
+    tryDeepLink(
+      `twitter://post?message=${encodeURIComponent(text)}`,
+      `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`
+    );
+  });
 }
 
 export async function shareToTelegram(canvases: HTMLElement[], text: string) {
@@ -319,8 +432,12 @@ export async function shareToTelegram(canvases: HTMLElement[], text: string) {
         // continue fallback
       }
     }
+
     await downloadMultipleCards(canvases, "fish-prices");
-    window.open(`https://t.me/share/url?text=${encodeURIComponent(text)}`, "_blank");
+    tryDeepLink(
+      `tg://msg?text=${encodeURIComponent(text)}`,
+      `https://t.me/share/url?text=${encodeURIComponent(text)}`
+    );
   });
 }
 
