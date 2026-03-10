@@ -404,8 +404,9 @@ const Index: React.FC = () => {
           is_published: true,
         });
       }
-    } catch {
-      toast.error("Download failed. Please try once more.");
+    } catch (error: any) {
+      console.error("Download error:", error);
+      toast.error(`Download failed: ${error?.message || error}`);
     } finally {
       setIsProcessing(false);
     }

@@ -131,7 +131,7 @@ const CardCanvas = forwardRef<HTMLDivElement, CardCanvasProps>(({
 
       <div style={{ height: 138, padding: "10px 16px", display: "flex", alignItems: "flex-start", gap: 12, position: "relative" }}>
         {shop.logo_url && (
-          <img src={shop.logo_url} alt="shop logo" style={{ width: 50, height: 50, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} />
+          <img src={shop.logo_url} crossOrigin="anonymous" alt="shop logo" style={{ width: 50, height: 50, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} />
         )}
         <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
           <div style={{
