@@ -145,11 +145,16 @@ export function getThemeForDay(dayNumber: number): CardTheme {
 
 export function getContrastColor(hex: string): string {
   if (!/^#[\da-fA-F]{6}$/.test(hex)) return "#FFFFFF";
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  return luminance > 0.5 ? "#000000" : "#FFFFFF";
+  const r = parseInt(hex.slice(1, 3), 16) / 255;
+  const g = parseInt(hex.slice(3, 5), 16) / 255;
+  const b = parseInt(hex.slice(5, 7), 16) / 255;
+  
+  const rc = r <= 0.03928 ? r / 12.92 : Math.pow((r + 0.055) / 1.055, 2.4);
+  const gc = g <= 0.03928 ? g / 12.92 : Math.pow((g + 0.055) / 1.055, 2.4);
+  const bc = b <= 0.03928 ? b / 12.92 : Math.pow((b + 0.055) / 1.055, 2.4);
+  
+  const luminance = 0.2126 * rc + 0.7152 * gc + 0.0722 * bc;
+  return luminance > 0.179 ? "#000000" : "#FFFFFF";
 }
 
 export const FONT_OPTIONS = [
