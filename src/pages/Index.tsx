@@ -166,23 +166,12 @@ const Index: React.FC = () => {
   const theme = getThemeForDay(dayNumber);
 
   const maxItemsPerPage = useMemo(() => {
-    // Card total height = 720px
-    // Estimate fixed chrome heights:
-    //   Shop header area: ~100px base + adjustments for text size
-    //   Day banner: ~38px
-    //   Delivery note: ~28px (if present)
-    //   Column header row: ~32px
-    //   Special note footer: ~38px (if present)
-    //   Padding/gaps: ~34px
-    const shopNameSize = textStyles.shopName?.fontSize || 24;
-    const shopTamilSize = textStyles.shopNameTamil?.fontSize || 16;
-    const taglineSize = textStyles.tagline?.fontSize || 12;
-    const headerHeight = 12 + shopNameSize * 1.4 + shopTamilSize * 1.4 + taglineSize * 1.4 + 32 + 20; // padding + texts + contact + gaps
-    const bannerHeight = 38;
+    const headerHeight = 138; // Hardcoded in CardCanvas
+    const bannerHeight = 42;  // Hardcoded in CardCanvas
     const deliveryHeight = shop.delivery_note ? 28 : 0;
-    const columnHeaderHeight = 32;
+    const columnHeaderHeight = 22; // 11px text + 8px padding + 1px border + 2px margin-bottom
     const specialNoteHeight = specialNote ? 38 : 0;
-    const paddingGaps = 34;
+    const paddingGaps = 26; // wrapper padding (10 top, 12 bottom) + 4px gap after column header
     const fixedHeight = headerHeight + bannerHeight + deliveryHeight + columnHeaderHeight + specialNoteHeight + paddingGaps;
     const availableHeight = 720 - fixedHeight;
 
@@ -192,9 +181,9 @@ const Index: React.FC = () => {
     const rowPadding = 16; // 8px top + 8px bottom
     const nameLineHeight = itemNameSize * 1.35;
     const tamilLineHeight = itemTamilSize * 1.4;
-    // Check if items have tamil names - if so, rows are taller
     const hasTamil = items.some(item => item.name_tamil);
-    const estimatedRowHeight = nameLineHeight + (hasTamil ? tamilLineHeight + 2 : 0) + rowPadding + 4; // +4 gap
+    const calculatedTextHeight = nameLineHeight + (hasTamil ? tamilLineHeight + 2 : 0);
+    const estimatedRowHeight = Math.max(48, calculatedTextHeight + rowPadding) + 4; // min height 48px + 4px gap
 
     const computed = Math.max(1, Math.floor(availableHeight / estimatedRowHeight));
     return computed;

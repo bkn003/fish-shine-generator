@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { PosterPreset, PriceItem, TextStyleOverrides, TextStyle, Shop } from "@/lib/shop";
-import { CardTheme, FONT_OPTIONS } from "@/lib/themes";
+import { CardTheme, FONT_OPTIONS, getContrastColor } from "@/lib/themes";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -404,7 +404,11 @@ const CardControls: React.FC<CardControlsProps> = ({
               title="Custom Solid Color"
               value={customHex}
               onChange={(e) => {
-                setCustomHex(e.target.value);
+                const val = e.target.value;
+                setCustomHex(val);
+                const textColor = getContrastColor(val);
+                const tamilColor = textColor === "#000000" ? "#333333" : "#e0e0e0";
+                applySimpleColor({ label: "Custom", hex: val, accent: val, badge: val, text: textColor, tamil: tamilColor });
               }}
               className="w-8 h-8 rounded border border-border bg-transparent p-0"
             />
@@ -417,7 +421,9 @@ const CardControls: React.FC<CardControlsProps> = ({
               }}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && /^#[0-9a-fA-F]{6}$/.test(customHex)) {
-                  applySimpleColor({ label: "Custom", hex: customHex, accent: customHex, badge: customHex, text: "#ffffff", tamil: "#e0e0e0" });
+                  const textColor = getContrastColor(customHex);
+                  const tamilColor = textColor === "#000000" ? "#333333" : "#e0e0e0";
+                  applySimpleColor({ label: "Custom", hex: customHex, accent: customHex, badge: customHex, text: textColor, tamil: tamilColor });
                 }
               }}
               placeholder="#FF5500"
@@ -427,7 +433,13 @@ const CardControls: React.FC<CardControlsProps> = ({
             <button
               onClick={() => {
                 if (/^#[0-9a-fA-F]{6}$/.test(customHex) || /^#[0-9a-fA-F]{3}$/.test(customHex)) {
-                  applySimpleColor({ label: "Custom", hex: customHex, accent: customHex, badge: customHex, text: "#ffffff", tamil: "#e0e0e0" });
+                  let hexToUse = customHex;
+                  if (/^#[0-9a-fA-F]{3}$/.test(customHex)) {
+                    hexToUse = "#" + customHex[1] + customHex[1] + customHex[2] + customHex[2] + customHex[3] + customHex[3];
+                  }
+                  const textColor = getContrastColor(hexToUse);
+                  const tamilColor = textColor === "#000000" ? "#333333" : "#e0e0e0";
+                  applySimpleColor({ label: "Custom", hex: hexToUse, accent: hexToUse, badge: hexToUse, text: textColor, tamil: tamilColor });
                 }
               }}
               className="px-2 py-1.5 rounded-md text-xs font-medium border border-border bg-primary/10 text-primary hover:bg-primary/20"
