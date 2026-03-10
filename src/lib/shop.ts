@@ -82,6 +82,11 @@ export interface PosterPresetData {
   aiBackgroundPrompt?: string;
   aiBackgroundId?: string;
   aiBackgroundImage?: string;
+  bgFrom?: string;
+  bgVia?: string;
+  bgTo?: string;
+  showGrain?: boolean;
+  showOrbs?: boolean;
 }
 
 export interface PosterPreset {

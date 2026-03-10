@@ -55,6 +55,10 @@ interface CardControlsProps {
   setShowGradient: (b: boolean) => void;
   usePremiumBackground: boolean;
   setUsePremiumBackground: (b: boolean) => void;
+  showGrain: boolean;
+  setShowGrain: (b: boolean) => void;
+  showOrbs: boolean;
+  setShowOrbs: (b: boolean) => void;
   font: string;
   setFont: (s: string) => void;
   shop: Shop;
@@ -129,6 +133,10 @@ const CardControls: React.FC<CardControlsProps> = ({
   setShowGradient,
   usePremiumBackground,
   setUsePremiumBackground,
+  showGrain,
+  setShowGrain,
+  showOrbs,
+  setShowOrbs,
   font,
   setFont,
   shop,
@@ -343,6 +351,60 @@ const CardControls: React.FC<CardControlsProps> = ({
             <Sparkles size={12} /> Premium fish-art pattern background (unlimited variants)
           </Label>
           <Switch checked={usePremiumBackground} onCheckedChange={setUsePremiumBackground} disabled={!showGradient} />
+        </div>
+      </div>
+
+      <div className="glass-panel p-4 space-y-3 border-primary/20 bg-primary/5">
+        <h3 className="text-sm font-semibold text-primary flex items-center gap-2">
+          <Palette size={14} /> Professional Backgrounds
+        </h3>
+        <p className="text-[11px] text-muted-foreground">
+          Premium gradient & texture system. Leave fields blank to use the day's default theme colors.
+        </p>
+
+        <div className="grid grid-cols-3 gap-2">
+          <div>
+            <Label className="text-[10px] text-muted-foreground">Gradient Top</Label>
+            <input
+              type="color"
+              value={colorOverrides.bgFrom || theme.gradient.split(" ")[1] || "#0A0D14"}
+              onChange={(e) => setColorOverrides({ ...colorOverrides, bgFrom: e.target.value })}
+              className="block w-full h-8 cursor-pointer rounded border-0 bg-transparent mt-1"
+            />
+          </div>
+          <div>
+            <Label className="text-[10px] text-muted-foreground">Gradient Mid</Label>
+            <input
+              type="color"
+              value={colorOverrides.bgVia || theme.gradient.split(" ")[2] || "#0A0D14"}
+              onChange={(e) => setColorOverrides({ ...colorOverrides, bgVia: e.target.value })}
+              className="block w-full h-8 cursor-pointer rounded border-0 bg-transparent mt-1"
+            />
+          </div>
+          <div>
+            <Label className="text-[10px] text-muted-foreground">Gradient Bot</Label>
+            <input
+              type="color"
+              value={colorOverrides.bgTo || theme.gradient.split(" ")[3] || "#0A0D14"}
+              onChange={(e) => setColorOverrides({ ...colorOverrides, bgTo: e.target.value })}
+              className="block w-full h-8 cursor-pointer rounded border-0 bg-transparent mt-1"
+            />
+          </div>
+        </div>
+
+        <div className="space-y-2 pt-2 border-t border-primary/10">
+          <div className="flex items-center justify-between">
+            <Label className="text-xs text-muted-foreground flex items-center gap-1">
+              Cinematic Poster Grain (Texture)
+            </Label>
+            <Switch checked={showGrain} onCheckedChange={setShowGrain} />
+          </div>
+          <div className="flex items-center justify-between">
+            <Label className="text-xs text-muted-foreground flex items-center gap-1">
+              Abstract Glowing Orbs (Mesh effect)
+            </Label>
+            <Switch checked={showOrbs} onCheckedChange={setShowOrbs} />
+          </div>
         </div>
       </div>
 

@@ -77,8 +77,13 @@ const Index: React.FC = () => {
     tamilText?: string;
     priceBadge?: string;
     dayBanner?: string;
+    bgFrom?: string;
+    bgVia?: string;
+    bgTo?: string;
   }>({});
   const [textStyles, setTextStyles] = useState<TextStyleOverrides>({});
+  const [showGrain, setShowGrain] = useState(true);
+  const [showOrbs, setShowOrbs] = useState(true);
   const [activePage, setActivePage] = useState(0);
   const [shop, setShop] = useState<Shop>({
     shop_name: "Fresh Fish Market",
@@ -199,6 +204,8 @@ const Index: React.FC = () => {
       colorOverrides,
       textStyles,
       aiBackgroundPrompt,
+      showGrain,
+      showOrbs,
     }),
     [
       dayNumber,
@@ -214,6 +221,8 @@ const Index: React.FC = () => {
       colorOverrides,
       textStyles,
       aiBackgroundPrompt,
+      showGrain,
+      showOrbs,
     ],
   );
 
@@ -231,6 +240,8 @@ const Index: React.FC = () => {
     setColorOverrides(data.colorOverrides || {});
     setTextStyles(data.textStyles || {});
     setAiBackgroundPrompt(data.aiBackgroundPrompt || "");
+    setShowGrain(data.showGrain ?? true);
+    setShowOrbs(data.showOrbs ?? true);
     setCustomBackgroundImage("");
     setActivePage(0);
   }, [shop]);
@@ -468,6 +479,10 @@ const Index: React.FC = () => {
             onDeletePreset={handleDeletePreset}
             aiBackgroundPrompt={aiBackgroundPrompt}
             setAiBackgroundPrompt={setAiBackgroundPrompt}
+            showGrain={showGrain}
+            setShowGrain={setShowGrain}
+            showOrbs={showOrbs}
+            setShowOrbs={setShowOrbs}
             hasCustomBackground={Boolean(customBackgroundImage)}
             isGeneratingAiBackground={isGeneratingAiBackground}
             onGenerateAiBackground={handleGenerateAiBackground}
@@ -523,6 +538,8 @@ const Index: React.FC = () => {
               priceHeaderLabel={priceHeaderLabel}
               colorOverrides={colorOverrides}
               textStyles={textStyles}
+              showGrain={showGrain}
+              showOrbs={showOrbs}
             />
           </div>
 
@@ -556,6 +573,8 @@ const Index: React.FC = () => {
                   priceHeaderLabel={priceHeaderLabel}
                   colorOverrides={colorOverrides}
                   textStyles={textStyles}
+                  showGrain={showGrain}
+                  showOrbs={showOrbs}
                   ref={captureRefs[pageIdx]}
                 />
               </div>

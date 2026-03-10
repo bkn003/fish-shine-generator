@@ -12,6 +12,8 @@ interface CardCanvasProps {
   showGradient: boolean;
   usePremiumBackground?: boolean;
   customBackgroundImage?: string;
+  showGrain?: boolean;
+  showOrbs?: boolean;
   font: string;
   itemsHeaderLabel: string;
   priceHeaderLabel: string;
@@ -22,6 +24,9 @@ interface CardCanvasProps {
     tamilText?: string;
     priceBadge?: string;
     dayBanner?: string;
+    bgFrom?: string;
+    bgVia?: string;
+    bgTo?: string;
   };
   textStyles: TextStyleOverrides;
 }
@@ -54,6 +59,8 @@ const CardCanvas = forwardRef<HTMLDivElement, CardCanvasProps>(({
   textStyles,
   itemsHeaderLabel,
   priceHeaderLabel,
+  showGrain = true,
+  showOrbs = true,
 }, ref) => {
   const accent = colorOverrides.accent || theme.accentColor;
   const shopNameC = textStyles.shopName?.color || colorOverrides.shopName || theme.shopNameColor;
@@ -66,12 +73,15 @@ const CardCanvas = forwardRef<HTMLDivElement, CardCanvasProps>(({
 
   const safeCustomBackground = customBackgroundImage?.replace(/"/g, "%22");
 
+  const [tTop, tMid, tBot] = theme.gradient.replace("linear-gradient(180deg, ", "").replace(")", "").split(", ");
+  const customBg = `linear-gradient(180deg, ${colorOverrides.bgFrom || tTop}, ${colorOverrides.bgVia || tMid}, ${colorOverrides.bgTo || tBot})`;
+
   const backgroundImage = showGradient
     ? safeCustomBackground
       ? `linear-gradient(180deg, rgba(6, 10, 18, 0.36), rgba(6, 10, 18, 0.58)), url("${safeCustomBackground}")`
       : usePremiumBackground
-        ? `${theme.premiumPattern}, ${theme.gradient}`
-        : theme.gradient
+        ? `${theme.premiumPattern}, ${customBg}`
+        : customBg
     : "none";
 
   const ts = (key: keyof TextStyleOverrides, defaults: { size: number; bold: boolean }) => ({
@@ -112,19 +122,42 @@ const CardCanvas = forwardRef<HTMLDivElement, CardCanvasProps>(({
         }}
       />
 
-      {!safeCustomBackground && (
+      {showGrain && (
+        <svg
+          style={{
+            position: "absolute",
+            inset: 0,
+            width: "100%",
+            height: "100%",
+            pointerEvents: "none",
+            mixBlendMode: "overlay",
+            opacity: 0.15,
+            zIndex: 1,
+          }}
+        >
+          <filter id="noise">
+            <feTurbulence type="fractalNoise" baseFrequency="0.75" numOctaves="3" stitchTiles="stitch" />
+            <feColorMatrix type="matrix" values="1 0 0 0 0, 0 1 0 0 0, 0 0 1 0 0, 0 0 0 0.3 0" />
+          </filter>
+          <rect width="100%" height="100%" filter="url(#noise)" />
+        </svg>
+      )}
+
+      {!safeCustomBackground && showOrbs && (
         <>
           <div style={{
-            position: "absolute", top: -50, right: -50,
-            width: 200, height: 200, borderRadius: "50%",
-            background: `radial-gradient(circle, ${theme.glowColor}33, transparent)`,
+            position: "absolute", top: -80, right: -80,
+            width: 300, height: 300, borderRadius: "50%",
+            background: `radial-gradient(circle, ${theme.glowColor}44, transparent 70%)`,
             pointerEvents: "none",
+            filter: "blur(40px)",
           }} />
           <div style={{
-            position: "absolute", bottom: -30, left: -30,
-            width: 150, height: 150, borderRadius: "50%",
-            background: `radial-gradient(circle, ${accent}22, transparent)`,
+            position: "absolute", bottom: -50, left: -50,
+            width: 250, height: 250, borderRadius: "50%",
+            background: `radial-gradient(circle, ${accent}33, transparent 70%)`,
             pointerEvents: "none",
+            filter: "blur(40px)",
           }} />
         </>
       )}
