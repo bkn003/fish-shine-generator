@@ -87,6 +87,7 @@ export interface PosterPresetData {
   bgTo?: string;
   showGrain?: boolean;
   showOrbs?: boolean;
+  showFishPattern?: boolean;
 }
 
 export interface PosterPreset {
