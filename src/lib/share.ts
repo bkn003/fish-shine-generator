@@ -57,8 +57,8 @@ function getRenderOptions(pixelRatio: number) {
     width: CAPTURE_WIDTH,
     height: CAPTURE_HEIGHT + EXPORT_BOTTOM_PADDING,
     pixelRatio,
-    cacheBust: false,
-    skipFonts: false,
+    cacheBust: true,
+    skipFonts: true,
     useCORS: true,
     // Ensure the background is captured (not transparent)
     backgroundColor: "#060a12",
