@@ -33,9 +33,6 @@ interface ColorOverrides {
   tamilText?: string;
   priceBadge?: string;
   dayBanner?: string;
-  bgFrom?: string;
-  bgVia?: string;
-  bgTo?: string;
 }
 
 interface SavedAiBackgroundOption {
@@ -62,8 +59,6 @@ interface CardControlsProps {
   setShowGrain: (b: boolean) => void;
   showOrbs: boolean;
   setShowOrbs: (b: boolean) => void;
-  showFishPattern: boolean;
-  setShowFishPattern: (b: boolean) => void;
   font: string;
   setFont: (s: string) => void;
   shop: Shop;
@@ -151,8 +146,6 @@ const CardControls: React.FC<CardControlsProps> = ({
   setShowGrain,
   showOrbs,
   setShowOrbs,
-  showFishPattern,
-  setShowFishPattern,
   font,
   setFont,
   shop,
@@ -274,7 +267,6 @@ const CardControls: React.FC<CardControlsProps> = ({
     setShowGrain(false);
     setShowOrbs(false);
     setUsePremiumBackground(false);
-    setShowFishPattern(false);
   };
 
   return (
@@ -387,56 +379,40 @@ const CardControls: React.FC<CardControlsProps> = ({
           </Label>
           <Switch checked={usePremiumBackground} onCheckedChange={setUsePremiumBackground} disabled={!showGradient} />
         </div>
-        <div className="flex items-center justify-between">
-          <Label className="text-xs text-muted-foreground flex items-center gap-1">
-            Subtle fish outline pattern
-          </Label>
-          <Switch checked={showFishPattern} onCheckedChange={setShowFishPattern} />
-        </div>
+      </div>
 
-        <div className="pt-2 border-t border-border/50">
-          <Label className="text-xs text-muted-foreground mb-2 block">Quick Solid Colors</Label>
-          <div className="flex flex-wrap gap-2">
-            {SIMPLE_COLORS.map((c) => (
-              <button
-                key={c.label}
-                onClick={() => applySimpleColor(c)}
-                className="px-3 py-1.5 rounded-md text-xs font-medium border border-border hover:opacity-80 transition-opacity"
-                style={{ backgroundColor: c.hex, color: c.text }}
-              >
-                {c.label}
-              </button>
-            ))}
-            <div className="flex items-center gap-2">
-              <input
-                type="color"
-                title="Custom Solid Color"
-                onChange={(e) => {
-                  const hex = e.target.value;
-                  applySimpleColor({ label: "Custom", hex, accent: hex, badge: hex, text: "#ffffff", tamil: "#e0e0e0" });
-                }}
-                className="w-8 h-8 rounded border border-border bg-transparent p-0"
-              />
-              <span className="text-[10px] text-muted-foreground">Custom</span>
-            </div>
+      <div className="glass-panel p-4 space-y-3">
+        <h3 className="text-sm font-semibold text-primary">Simple Solid Colors</h3>
+        <p className="text-[11px] text-muted-foreground">
+          Instantly apply a clean solid background with reading-friendly text colors.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {SIMPLE_COLORS.map((c) => (
             <button
-              onClick={() => {
-                setColorOverrides({
-                  ...colorOverrides,
-                  bgFrom: "", bgVia: "", bgTo: "",
-                  accent: "", shopName: "", itemText: "",
-                  tamilText: "", priceBadge: "", dayBanner: ""
-                });
-                setShowGrain(true);
-                setShowOrbs(true);
-                setUsePremiumBackground(true);
-                setShowFishPattern(true);
-              }}
-              className="px-3 py-1.5 rounded-md text-xs font-medium border border-border bg-secondary hover:bg-secondary/80 text-foreground"
+              key={c.label}
+              onClick={() => applySimpleColor(c)}
+              className="px-3 py-1.5 rounded-md text-xs font-medium border border-border hover:opacity-80 transition-opacity"
+              style={{ backgroundColor: c.hex, color: c.text }}
             >
-              Reset
+              {c.label}
             </button>
-          </div>
+          ))}
+          <button
+            onClick={() => {
+              setColorOverrides({
+                ...colorOverrides,
+                bgFrom: "", bgVia: "", bgTo: "",
+                accent: "", shopName: "", itemText: "",
+                tamilText: "", priceBadge: "", dayBanner: ""
+              });
+              setShowGrain(true);
+              setShowOrbs(true);
+              setUsePremiumBackground(true);
+            }}
+            className="px-3 py-1.5 rounded-md text-xs font-medium border border-border bg-secondary hover:bg-secondary/80 text-foreground"
+          >
+            Reset
+          </button>
         </div>
       </div>
 
@@ -504,17 +480,23 @@ const CardControls: React.FC<CardControlsProps> = ({
           className="bg-secondary border-border min-h-[84px] text-xs"
           placeholder="Optional custom prompt. Keep empty to auto-generate a premium fish background from day + label."
         />
-         <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2">
           <button
             type="button"
-            onClick={() => {
-              onGenerateAiBackground(false, true); // true for "free/unlimited" flag
-            }}
+            onClick={() => onGenerateAiBackground(false)}
             disabled={isGeneratingAiBackground}
-            className="rounded-md border border-border bg-primary/10 text-primary px-3 py-2 text-xs font-semibold hover:bg-primary/20 disabled:opacity-50 flex items-center gap-1"
+            className="rounded-md border border-border bg-secondary px-3 py-2 text-xs text-foreground hover:bg-secondary/80 disabled:opacity-50 flex items-center gap-1"
           >
             {isGeneratingAiBackground ? <Loader2 size={12} className="animate-spin" /> : <WandSparkles size={12} />}
-            Generate Free Image
+            Generate
+          </button>
+          <button
+            type="button"
+            onClick={() => onGenerateAiBackground(true)}
+            disabled={isGeneratingAiBackground}
+            className="rounded-md border border-border bg-secondary px-3 py-2 text-xs text-foreground hover:bg-secondary/80 disabled:opacity-50"
+          >
+            Generate New Variation
           </button>
           <button
             type="button"
@@ -522,7 +504,7 @@ const CardControls: React.FC<CardControlsProps> = ({
             disabled={!hasCustomBackground || isGeneratingAiBackground}
             className="rounded-md border border-border bg-secondary px-3 py-2 text-xs text-muted-foreground hover:text-foreground disabled:opacity-40 flex items-center gap-1"
           >
-            <ImageOff size={12} /> Clear Background
+            <ImageOff size={12} /> Clear AI Background
           </button>
         </div>
         <p className="text-[11px] text-muted-foreground">
@@ -695,20 +677,6 @@ const CardControls: React.FC<CardControlsProps> = ({
                     >
                       <Bold size={12} />
                     </button>
-                    <div className="flex items-center gap-1">
-                      <button 
-                        onClick={() => updateTextStyle(key, "fontSize", Math.max(8, currentSize - 1))}
-                        className="p-1 rounded border border-border bg-secondary hover:bg-secondary/80 text-foreground"
-                      >
-                        <Plus size={10} className="rotate-45" />
-                      </button>
-                      <button 
-                        onClick={() => updateTextStyle(key, "fontSize", Math.min(48, currentSize + 1))}
-                        className="p-1 rounded border border-border bg-secondary hover:bg-secondary/80 text-foreground"
-                      >
-                        <Plus size={10} />
-                      </button>
-                    </div>
                     <span className="text-[10px] text-muted-foreground w-6 text-right">{currentSize}</span>
                     {style && (
                       <button onClick={() => resetTextStyle(key)} className="text-muted-foreground hover:text-foreground">
@@ -716,7 +684,7 @@ const CardControls: React.FC<CardControlsProps> = ({
                       </button>
                     )}
                   </div>
-                  <Slider value={[currentSize]} onValueChange={([v]) => updateTextStyle(key, "fontSize", v)} min={8} max={48} step={1} className="w-full" />
+                  <Slider value={[currentSize]} onValueChange={([v]) => updateTextStyle(key, "fontSize", v)} min={8} max={32} step={1} className="w-full" />
                 </div>
               );
             })}

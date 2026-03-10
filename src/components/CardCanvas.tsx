@@ -14,7 +14,6 @@ interface CardCanvasProps {
   customBackgroundImage?: string;
   showGrain?: boolean;
   showOrbs?: boolean;
-  showFishPattern?: boolean;
   font: string;
   itemsHeaderLabel: string;
   priceHeaderLabel: string;
@@ -62,7 +61,6 @@ const CardCanvas = forwardRef<HTMLDivElement, CardCanvasProps>(({
   priceHeaderLabel,
   showGrain = true,
   showOrbs = true,
-  showFishPattern = true,
 }, ref) => {
   const accent = colorOverrides.accent || theme.accentColor;
   const shopNameC = textStyles.shopName?.color || colorOverrides.shopName || theme.shopNameColor;
@@ -112,19 +110,17 @@ const CardCanvas = forwardRef<HTMLDivElement, CardCanvasProps>(({
       className="flex flex-col"
       data-card-capture="true"
     >
-      {showFishPattern && (
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            backgroundImage: `url("data:image/svg+xml,${subtleFishSvg}")`,
-            backgroundSize: "220px 220px",
-            backgroundRepeat: "repeat",
-            opacity: 0.08,
-            pointerEvents: "none",
-          }}
-        />
-      )}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          backgroundImage: `url("data:image/svg+xml,${subtleFishSvg}")`,
+          backgroundSize: "220px 220px",
+          backgroundRepeat: "repeat",
+          opacity: 0.08,
+          pointerEvents: "none",
+        }}
+      />
 
       {showGrain && (
         <svg
@@ -166,57 +162,47 @@ const CardCanvas = forwardRef<HTMLDivElement, CardCanvasProps>(({
         </>
       )}
 
-       <div style={{ 
-        flex: 1, 
-        padding: "12px 16px 8px", 
-        display: "flex", 
-        flexDirection: "column", 
-        alignItems: "center", 
-        textAlign: "center",
-        gap: 6,
-        position: "relative",
-        minHeight: 100,
-        justifyContent: "center"
-      }}>
+      <div style={{ height: 138, padding: "10px 16px", display: "flex", alignItems: "flex-start", gap: 12, position: "relative" }}>
         {shop.logo_url && (
-          <img src={shop.logo_url} crossOrigin="anonymous" alt="shop logo" style={{ width: 44, height: 44, borderRadius: 8, objectFit: "cover", marginBottom: 2 }} />
+          <img src={shop.logo_url} crossOrigin="anonymous" alt="shop logo" style={{ width: 50, height: 50, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} />
         )}
-        <div style={{ width: "100%", maxWidth: "90%" }}>
+        <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
           <div style={{
-            ...ts("shopName", { size: 24, bold: true }),
+            ...ts("shopName", { size: 20, bold: true }),
             color: shopNameC,
-            lineHeight: 1.2,
+            lineHeight: 1.35,
             overflow: "hidden",
             textOverflow: "ellipsis",
             whiteSpace: "nowrap",
+            paddingTop: 1,
             position: "relative",
           }}>
             {shop.shop_name}
           </div>
           {shop.shop_name_tamil && (
             <div style={{
-              ...ts("shopNameTamil", { size: 16, bold: false }),
+              ...ts("shopNameTamil", { size: 14, bold: false }),
               color: textStyles.shopNameTamil?.color || tamilTextC,
-              lineHeight: 1.2,
+              lineHeight: 1.4,
               overflow: "hidden",
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",
-              marginTop: 1,
+              marginTop: 2,
+              paddingTop: 1,
               position: "relative",
             }}>
               {shop.shop_name_tamil}
             </div>
           )}
           <div style={{
-            ...ts("tagline", { size: 12, bold: false }),
+            ...ts("tagline", { size: 11, bold: false }),
             color: textStyles.tagline?.color || accent,
-            lineHeight: 1.2,
+            lineHeight: 1.35,
             marginTop: 2,
             overflow: "hidden",
             textOverflow: "ellipsis",
             whiteSpace: "nowrap",
             position: "relative",
-            opacity: 0.9,
           }}>
             {shop.tagline}
           </div>
@@ -226,28 +212,31 @@ const CardCanvas = forwardRef<HTMLDivElement, CardCanvasProps>(({
           <div style={{
             fontSize: 10,
             color: itemTextC,
-            textAlign: "center",
-            opacity: 0.85,
-            lineHeight: 1.2,
-            width: "100%",
+            textAlign: "right",
+            opacity: 0.95,
+            flexShrink: 0,
+            lineHeight: 1.3,
+            maxWidth: 174,
             display: "flex",
-            flexDirection: "row",
-            flexWrap: "wrap",
-            justifyContent: "center",
-            alignItems: "center",
-            gap: 8,
-            marginTop: 2,
+            flexDirection: "column",
+            alignItems: "flex-end",
+            gap: 2,
+            paddingTop: 2,
             position: "relative",
           }}>
-            {shop.phone && <div style={{ whiteSpace: "nowrap" }}>📞 {shop.phone}</div>}
-            {shop.whatsapp && <div style={{ whiteSpace: "nowrap" }}>💬 {shop.whatsapp}</div>}
+            {shop.phone && <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>📞 {shop.phone}</div>}
+            {shop.whatsapp && <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>💬 {shop.whatsapp}</div>}
             {shop.address && (
               <div
                 style={{
-                  whiteSpace: "nowrap",
+                  whiteSpace: "normal",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
-                  maxWidth: "200px",
+                  wordBreak: "break-word",
+                  display: "-webkit-box",
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: "vertical",
+                  maxWidth: "100%",
                 }}
               >
                 📍 {shop.address}
@@ -258,7 +247,7 @@ const CardCanvas = forwardRef<HTMLDivElement, CardCanvasProps>(({
       </div>
 
       <div style={{
-        height: 38,
+        height: 42,
         background: bannerC,
         display: "flex",
         alignItems: "center",
@@ -267,18 +256,16 @@ const CardCanvas = forwardRef<HTMLDivElement, CardCanvasProps>(({
         flexShrink: 0,
         padding: "0 12px",
         position: "relative",
-        boxShadow: "0 4px 12px rgba(0,0,0,0.25), inset 0 0 10px rgba(255,255,255,0.1)",
       }}>
         <span style={{
-          ...ts("dayBanner", { size: 18, bold: true }),
+          ...ts("dayBanner", { size: 16, bold: true }),
           color: bannerTextC,
-          letterSpacing: 0.5,
-          lineHeight: 1.2,
+          letterSpacing: 0.25,
+          lineHeight: 1.25,
           overflow: "hidden",
           textOverflow: "ellipsis",
           whiteSpace: "nowrap",
           position: "relative",
-          textShadow: "0 1px 3px rgba(0,0,0,0.3)",
         }}>
           {dayLabel}
         </span>

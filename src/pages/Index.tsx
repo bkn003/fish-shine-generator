@@ -83,8 +83,7 @@ const Index: React.FC = () => {
   }>({});
   const [textStyles, setTextStyles] = useState<TextStyleOverrides>({});
   const [showGrain, setShowGrain] = useState(true);
-   const [showOrbs, setShowOrbs] = useState(true);
-  const [showFishPattern, setShowFishPattern] = useState(true);
+  const [showOrbs, setShowOrbs] = useState(true);
   const [activePage, setActivePage] = useState(0);
   const [shop, setShop] = useState<Shop>({
     shop_name: "Fresh Fish Market",
@@ -204,10 +203,9 @@ const Index: React.FC = () => {
       shop,
       colorOverrides,
       textStyles,
-       aiBackgroundPrompt,
+      aiBackgroundPrompt,
       showGrain,
       showOrbs,
-      showFishPattern,
     }),
     [
       dayNumber,
@@ -225,7 +223,6 @@ const Index: React.FC = () => {
       aiBackgroundPrompt,
       showGrain,
       showOrbs,
-      showFishPattern,
     ],
   );
 
@@ -243,9 +240,8 @@ const Index: React.FC = () => {
     setColorOverrides(data.colorOverrides || {});
     setTextStyles(data.textStyles || {});
     setAiBackgroundPrompt(data.aiBackgroundPrompt || "");
-     setShowGrain(data.showGrain ?? true);
+    setShowGrain(data.showGrain ?? true);
     setShowOrbs(data.showOrbs ?? true);
-    setShowFishPattern(data.showFishPattern ?? true);
     setCustomBackgroundImage("");
     setActivePage(0);
   }, [shop]);
@@ -286,22 +282,7 @@ const Index: React.FC = () => {
     return `${basePrompt}\nCreate a different visual composition from the last one with new fish placement, new lighting, and new texture balance while keeping readability-safe center space.`;
   };
 
-   const handleGenerateAiBackground = async (isVariation = false, forceFree = false) => {
-    if (forceFree) {
-      setIsGeneratingAiBackground(true);
-      const prompt = aiBackgroundPrompt.trim() || getDefaultFishBackgroundPrompt(dayNumber, dayLabel);
-      const seed = Math.floor(Math.random() * 1000000);
-      const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=500&height=720&nologo=true&seed=${seed}`;
-      
-      // Simulate loading for better UX
-      setTimeout(() => {
-        setCustomBackgroundImage(url);
-        setIsGeneratingAiBackground(false);
-        toast.success("Free AI background generated!");
-      }, 1000);
-      return;
-    }
-
+  const handleGenerateAiBackground = async (isVariation = false) => {
     setIsGeneratingAiBackground(true);
     const promptToUse = resolveAiPrompt(isVariation);
 
@@ -500,10 +481,8 @@ const Index: React.FC = () => {
             setAiBackgroundPrompt={setAiBackgroundPrompt}
             showGrain={showGrain}
             setShowGrain={setShowGrain}
-             showOrbs={showOrbs}
+            showOrbs={showOrbs}
             setShowOrbs={setShowOrbs}
-            showFishPattern={showFishPattern}
-            setShowFishPattern={setShowFishPattern}
             hasCustomBackground={Boolean(customBackgroundImage)}
             isGeneratingAiBackground={isGeneratingAiBackground}
             onGenerateAiBackground={handleGenerateAiBackground}
@@ -559,9 +538,8 @@ const Index: React.FC = () => {
               priceHeaderLabel={priceHeaderLabel}
               colorOverrides={colorOverrides}
               textStyles={textStyles}
-               showGrain={showGrain}
+              showGrain={showGrain}
               showOrbs={showOrbs}
-              showFishPattern={showFishPattern}
             />
           </div>
 
@@ -595,9 +573,8 @@ const Index: React.FC = () => {
                   priceHeaderLabel={priceHeaderLabel}
                   colorOverrides={colorOverrides}
                   textStyles={textStyles}
-                   showGrain={showGrain}
+                  showGrain={showGrain}
                   showOrbs={showOrbs}
-                  showFishPattern={showFishPattern}
                   ref={captureRefs[pageIdx]}
                 />
               </div>
