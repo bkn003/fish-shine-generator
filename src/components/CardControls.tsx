@@ -120,6 +120,15 @@ const TEXT_STYLE_FIELDS: TextStyleField[] = [
   { key: "specialNote", label: "Special Note", defaultSize: 12, defaultBold: false },
 ];
 
+const SIMPLE_COLORS = [
+  { label: "Blue", hex: "#003b73", accent: "#66b3ff", badge: "#0059b3", text: "#ffffff", tamil: "#e6f2ff" },
+  { label: "Red", hex: "#730000", accent: "#ff6666", badge: "#b30000", text: "#ffffff", tamil: "#ffe6e6" },
+  { label: "Green", hex: "#004000", accent: "#66ff66", badge: "#008000", text: "#ffffff", tamil: "#e6ffe6" },
+  { label: "Orange", hex: "#a64000", accent: "#ffcc80", badge: "#cc4400", text: "#ffffff", tamil: "#ffeecc" },
+  { label: "Purple", hex: "#400040", accent: "#ff66ff", badge: "#800080", text: "#ffffff", tamil: "#ffe6ff" },
+  { label: "Black", hex: "#0d0d0d", accent: "#cccccc", badge: "#333333", text: "#ffffff", tamil: "#e6e6e6" },
+];
+
 const CardControls: React.FC<CardControlsProps> = ({
   dayNumber,
   setDayNumber,
@@ -242,6 +251,24 @@ const CardControls: React.FC<CardControlsProps> = ({
     onSavePreset(name.trim());
   };
 
+  const applySimpleColor = (c: typeof SIMPLE_COLORS[0]) => {
+    setColorOverrides({
+      ...colorOverrides,
+      bgFrom: c.hex,
+      bgVia: c.hex,
+      bgTo: c.hex,
+      accent: c.accent,
+      shopName: c.text,
+      itemText: c.text,
+      tamilText: c.tamil,
+      priceBadge: c.badge,
+      dayBanner: c.hex
+    });
+    setShowGrain(false);
+    setShowOrbs(false);
+    setUsePremiumBackground(false);
+  };
+
   return (
     <div className="space-y-4">
       <div className="glass-panel p-4 space-y-3">
@@ -351,6 +378,41 @@ const CardControls: React.FC<CardControlsProps> = ({
             <Sparkles size={12} /> Premium fish-art pattern background (unlimited variants)
           </Label>
           <Switch checked={usePremiumBackground} onCheckedChange={setUsePremiumBackground} disabled={!showGradient} />
+        </div>
+      </div>
+
+      <div className="glass-panel p-4 space-y-3">
+        <h3 className="text-sm font-semibold text-primary">Simple Solid Colors</h3>
+        <p className="text-[11px] text-muted-foreground">
+          Instantly apply a clean solid background with reading-friendly text colors.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {SIMPLE_COLORS.map((c) => (
+            <button
+              key={c.label}
+              onClick={() => applySimpleColor(c)}
+              className="px-3 py-1.5 rounded-md text-xs font-medium border border-border hover:opacity-80 transition-opacity"
+              style={{ backgroundColor: c.hex, color: c.text }}
+            >
+              {c.label}
+            </button>
+          ))}
+          <button
+            onClick={() => {
+              setColorOverrides({
+                ...colorOverrides,
+                bgFrom: "", bgVia: "", bgTo: "",
+                accent: "", shopName: "", itemText: "",
+                tamilText: "", priceBadge: "", dayBanner: ""
+              });
+              setShowGrain(true);
+              setShowOrbs(true);
+              setUsePremiumBackground(true);
+            }}
+            className="px-3 py-1.5 rounded-md text-xs font-medium border border-border bg-secondary hover:bg-secondary/80 text-foreground"
+          >
+            Reset
+          </button>
         </div>
       </div>
 
