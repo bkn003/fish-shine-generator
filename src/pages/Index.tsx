@@ -21,7 +21,7 @@ import { toast } from "sonner";
 import { useSearchParams } from "react-router-dom";
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-const MAX_ITEMS_PER_PAGE = 9;
+// Dynamic max items per page is calculated based on text styles - see computeMaxItemsPerPage
 
 const createItemId = () => (typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
 
@@ -165,13 +165,48 @@ const Index: React.FC = () => {
 
   const theme = getThemeForDay(dayNumber);
 
+  const maxItemsPerPage = useMemo(() => {
+    // Card total height = 720px
+    // Estimate fixed chrome heights:
+    //   Shop header area: ~100px base + adjustments for text size
+    //   Day banner: ~38px
+    //   Delivery note: ~28px (if present)
+    //   Column header row: ~32px
+    //   Special note footer: ~38px (if present)
+    //   Padding/gaps: ~34px
+    const shopNameSize = textStyles.shopName?.fontSize || 24;
+    const shopTamilSize = textStyles.shopNameTamil?.fontSize || 16;
+    const taglineSize = textStyles.tagline?.fontSize || 12;
+    const headerHeight = 12 + shopNameSize * 1.4 + shopTamilSize * 1.4 + taglineSize * 1.4 + 32 + 20; // padding + texts + contact + gaps
+    const bannerHeight = 38;
+    const deliveryHeight = shop.delivery_note ? 28 : 0;
+    const columnHeaderHeight = 32;
+    const specialNoteHeight = specialNote ? 38 : 0;
+    const paddingGaps = 34;
+    const fixedHeight = headerHeight + bannerHeight + deliveryHeight + columnHeaderHeight + specialNoteHeight + paddingGaps;
+    const availableHeight = 720 - fixedHeight;
+
+    // Estimate each item row height based on text sizes
+    const itemNameSize = textStyles.itemName?.fontSize || 14;
+    const itemTamilSize = textStyles.itemNameTamil?.fontSize || 12;
+    const rowPadding = 16; // 8px top + 8px bottom
+    const nameLineHeight = itemNameSize * 1.35;
+    const tamilLineHeight = itemTamilSize * 1.4;
+    // Check if items have tamil names - if so, rows are taller
+    const hasTamil = items.some(item => item.name_tamil);
+    const estimatedRowHeight = nameLineHeight + (hasTamil ? tamilLineHeight + 2 : 0) + rowPadding + 4; // +4 gap
+
+    const computed = Math.max(1, Math.floor(availableHeight / estimatedRowHeight));
+    return computed;
+  }, [textStyles, shop.delivery_note, specialNote, items]);
+
   const pages = useMemo(() => {
     const result: PriceItem[][] = [];
-    for (let i = 0; i < items.length; i += MAX_ITEMS_PER_PAGE) {
-      result.push(items.slice(i, i + MAX_ITEMS_PER_PAGE));
+    for (let i = 0; i < items.length; i += maxItemsPerPage) {
+      result.push(items.slice(i, i + maxItemsPerPage));
     }
     return result.length > 0 ? result : [[]];
-  }, [items]);
+  }, [items, maxItemsPerPage]);
 
   useEffect(() => {
     if (activePage >= pages.length) {

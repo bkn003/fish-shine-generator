@@ -166,7 +166,7 @@ const CardCanvas = forwardRef<HTMLDivElement, CardCanvasProps>(({
         {shop.logo_url && (
           <img src={shop.logo_url} crossOrigin="anonymous" alt="shop logo" style={{ width: 50, height: 50, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} />
         )}
-        <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
+        <div style={{ flex: 1, minWidth: 0, overflow: "hidden", textAlign: "center" }}>
           <div style={{
             ...ts("shopName", { size: 20, bold: true }),
             color: shopNameC,

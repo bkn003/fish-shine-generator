@@ -182,6 +182,7 @@ const CardControls: React.FC<CardControlsProps> = ({
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [customHex, setCustomHex] = useState("#000000");
 
   const addItem = () =>
     setItems([
@@ -388,7 +389,7 @@ const CardControls: React.FC<CardControlsProps> = ({
         </p>
         <div className="flex flex-wrap gap-2">
           {SIMPLE_COLORS.map((c) => (
-            <button
+             <button
               key={c.label}
               onClick={() => applySimpleColor(c)}
               className="px-3 py-1.5 rounded-md text-xs font-medium border border-border hover:opacity-80 transition-opacity"
@@ -397,6 +398,44 @@ const CardControls: React.FC<CardControlsProps> = ({
               {c.label}
             </button>
           ))}
+          <div className="flex items-center gap-2 flex-wrap">
+            <input
+              type="color"
+              title="Custom Solid Color"
+              value={customHex}
+              onChange={(e) => {
+                setCustomHex(e.target.value);
+              }}
+              className="w-8 h-8 rounded border border-border bg-transparent p-0"
+            />
+            <Input
+              value={customHex}
+              onChange={(e) => {
+                let val = e.target.value;
+                if (!val.startsWith("#")) val = "#" + val;
+                setCustomHex(val.slice(0, 7));
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && /^#[0-9a-fA-F]{6}$/.test(customHex)) {
+                  applySimpleColor({ label: "Custom", hex: customHex, accent: customHex, badge: customHex, text: "#ffffff", tamil: "#e0e0e0" });
+                }
+              }}
+              placeholder="#FF5500"
+              className="bg-secondary border-border h-8 text-xs w-24 font-mono"
+              maxLength={7}
+            />
+            <button
+              onClick={() => {
+                if (/^#[0-9a-fA-F]{6}$/.test(customHex) || /^#[0-9a-fA-F]{3}$/.test(customHex)) {
+                  applySimpleColor({ label: "Custom", hex: customHex, accent: customHex, badge: customHex, text: "#ffffff", tamil: "#e0e0e0" });
+                }
+              }}
+              className="px-2 py-1.5 rounded-md text-xs font-medium border border-border bg-primary/10 text-primary hover:bg-primary/20"
+            >
+              Apply
+            </button>
+            <span className="text-[10px] text-muted-foreground">Custom</span>
+          </div>
           <button
             onClick={() => {
               setColorOverrides({
@@ -408,6 +447,7 @@ const CardControls: React.FC<CardControlsProps> = ({
               setShowGrain(true);
               setShowOrbs(true);
               setUsePremiumBackground(true);
+              setShowFishPattern(true);
             }}
             className="px-3 py-1.5 rounded-md text-xs font-medium border border-border bg-secondary hover:bg-secondary/80 text-foreground"
           >
